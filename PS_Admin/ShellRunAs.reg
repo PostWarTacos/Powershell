@@ -1,0 +1,10 @@
+Windows Registry Editor Version 5.00
+
+[HKEY_LOCAL_MACHINE\Software\Classes\lnkfile\Shell\Run as different user...\Command]
+@="\"C:\\Windows\\System32\\ShellRunas.exe\" \"%1\" %*"
+
+[HKEY_LOCAL_MACHINE\Software\Classes\SystemFileAssociations\.exe\Shell\Run as different user...\Command]
+@="\"C:\\Windows\\System32\\ShellRunas.exe\" "%1\"%*"
+
+[HKEY_LOCAL_MACHINE\Software\Classes\SystemFileAssociations\.msc\Shell\Run as different user...\Command]
+@="\"C:\\Windows\\System32\\ShellRunas.exe\" \"%1\" %*"
