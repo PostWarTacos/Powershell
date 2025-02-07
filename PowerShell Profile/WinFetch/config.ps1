@@ -1,7 +1,7 @@
 
 # ===== WINFETCH CONFIGURATION =====
 
-$image = "C:\Users\wurtzmt\Downloads\mr30\op1.png"
+$image = "C:\Users\wurtzmt\Downloads\mr30\MR30.png"
 # $noimage = $true
 
 # Display image using ASCII characters
