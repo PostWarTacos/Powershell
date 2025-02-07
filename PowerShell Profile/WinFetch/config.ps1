@@ -1,7 +1,7 @@
 
 # ===== WINFETCH CONFIGURATION =====
 
-$image = "C:\Users\wurtzmt\Downloads\mr30\MR30.png"
+$image = "https://raw.githubusercontent.com/PostWarTacos/Powershell/1fe92f04ddbe62e45da4cd182c86b55201ed55de/PowerShell%20Profile/WinFetch/MR30.png"
 # $noimage = $true
 
 # Display image using ASCII characters
