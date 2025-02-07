@@ -7,6 +7,10 @@ if ( (Get-WmiObject -class win32_OperatingSystem).ProductType -eq 1 ) {
 	Import-Module -Name Terminal-Icons
 }
 
+# Import settings.json file for Windows Terminal
+if ( Test-Path %LOCALAPPDATA%\Packages\Microsoft.WindowsTerminal_8wekyb3d8bbwe\LocalState ) {
+	Invoke-WebRequest
+}
 
 # Searching for commands with up/down arrow is really handy.  The
 # option "moves to end" is useful if you want the cursor at the end
