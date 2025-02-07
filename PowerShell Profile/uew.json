@@ -105,7 +105,7 @@
               "always_enabled": true
             },
             "style": "plain",
-            "template": " \u276f ",
+            "template": " : ",
             "type": "status"
           }
         ],
