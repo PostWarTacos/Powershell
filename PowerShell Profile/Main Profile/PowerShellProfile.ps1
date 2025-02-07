@@ -12,6 +12,8 @@ if ( Test-Path %LOCALAPPDATA%\Packages\Microsoft.WindowsTerminal_8wekyb3d8bbwe\L
 	Invoke-WebRequest
 }
 
+#this is a
+
 # Searching for commands with up/down arrow is really handy.  The
 # option "moves to end" is useful if you want the cursor at the end
 # of the line while cycling through history like it does w/o searching,
