@@ -1,18 +1,31 @@
 # Test if machine is a server. Don't run these commands if it is
 # Product type 1 = workstation. 2 = Domain controller. 3 = non-DC server.
 if ( (Get-WmiObject -class win32_OperatingSystem).ProductType -eq 1 ) {
-	# Write in installs for these three
-	oh-my-posh init pwsh --config "https://raw.githubusercontent.com/PostWarTacos/Powershell/refs/heads/main/PowerShell%20Profile/uew.json" | Invoke-Expression
-	winfetch -configpath "~\.config\winfetch\CustomConfig.ps1"
-	Import-Module -Name Terminal-Icons
-}
+    If ( -not (Test-Path ~\Documents\Coding\PowerShell\PowerShellProfile) ){
+        mkdir ~\Documents\Coding\PowerShell\PowerShellProfile
+    }
+	
+    # Download configs and apply locally
+	# oh-my-posh
+    Invoke-WebRequest "https://raw.githubusercontent.com/PostWarTacos/Powershell/refs/heads/main/PowerShell%20Profile/uew.json"`
+        -OutFile "~\Documents\Coding\PowerShell\PowerShellProfile\uew.json"
+    oh-my-posh init pwsh --config "~\Documents\Coding\PowerShell\PowerShellProfile\uew.json" | Invoke-Expression
+	
+    # WinFetch
+    Invoke-WebRequest "https://raw.githubusercontent.com/PostWarTacos/Powershell/refs/heads/main/PowerShell%20Profile/WinFetch/CustomConfig.ps1"`
+        -OutFile "~\.config\winfetch\CustomConfig.ps1"
+    winfetch -configpath "~\.config\winfetch\CustomConfig.ps1"
+	
+    # Terminal Icons
+    Import-Module -Name Terminal-Icons
 
-# Import settings.json file for Windows Terminal
-if ( Test-Path %LOCALAPPDATA%\Packages\Microsoft.WindowsTerminal_8wekyb3d8bbwe\LocalState ) {
-	Invoke-WebRequest
-}
+    # Import settings.json file for Windows Terminal
+    if ( Test-Path %LOCALAPPDATA%\Packages\Microsoft.WindowsTerminal_8wekyb3d8bbwe\LocalState ) {
+        Invoke-WebRequest "https://raw.githubusercontent.com/PostWarTacos/Powershell/refs/heads/main/PowerShell%20Profile/Win%20Terminal%20Settings/settings.json"`
+            -OutFile "%LOCALAPPDATA%\Packages\Microsoft.WindowsTerminal_8wekyb3d8bbwe\LocalState\settings.json"
+    }
 
-#this is a
+}
 
 # Searching for commands with up/down arrow is really handy.  The
 # option "moves to end" is useful if you want the cursor at the end
@@ -103,7 +116,7 @@ Set-PSReadLineKeyHandler -Key RightArrow `
     }
 }
 
-If ( -not Test-Path ~\Documents\Coding\PowerShell\Transcripts ){
+If ( -not (Test-Path ~\Documents\Coding\PowerShell\Transcripts) ){
 	mkdir ~\Documents\Coding\PowerShell\Transcripts
 }
 Start-Transcript -OutputDirectory "~\Documents\Coding\PowerShell\Transcripts" -NoClobber -IncludeInvocationHeader
