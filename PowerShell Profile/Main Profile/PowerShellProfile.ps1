@@ -1,5 +1,5 @@
 # Test if machine is a server. Don't run these commands if it is
-# Product type 1 = workstation. 2 = Domain controller. 3 = non-DC server.
+# Product type 1 = Workstation. 2 = Domain controller. 3 = non-DC server.
 if ( (Get-WmiObject -class win32_OperatingSystem).ProductType -eq 1 ) {
     If ( -not (Test-Path ~\Documents\Coding\PowerShell\PowerShellProfile) ){
         mkdir ~\Documents\Coding\PowerShell\PowerShellProfile
@@ -24,7 +24,7 @@ if ( (Get-WmiObject -class win32_OperatingSystem).ProductType -eq 1 ) {
         Invoke-WebRequest "https://raw.githubusercontent.com/PostWarTacos/Powershell/refs/heads/main/PowerShell%20Profile/Win%20Terminal%20Settings/settings.json"`
             -OutFile "%LOCALAPPDATA%\Packages\Microsoft.WindowsTerminal_8wekyb3d8bbwe\LocalState\settings.json"
     }
-
+    winfetch
 }
 
 # Searching for commands with up/down arrow is really handy.  The
@@ -120,4 +120,3 @@ If ( -not (Test-Path ~\Documents\Coding\PowerShell\Transcripts) ){
 	mkdir ~\Documents\Coding\PowerShell\Transcripts
 }
 Start-Transcript -OutputDirectory "~\Documents\Coding\PowerShell\Transcripts" -NoClobber -IncludeInvocationHeader
-

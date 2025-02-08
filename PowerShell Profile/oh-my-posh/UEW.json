@@ -6,33 +6,30 @@
         "newline": true,
         "segments": [
           {
-            "foreground": "#BBC4B9",
-            "leading_diamond":"<#BFA8BF>~</> ",
+            "foreground": "#B6D6F2",
+            "leading_diamond": "<#BFA8BF>~</>",
             "properties": {
-              "display_host": true
+              "folder_icon": "\u002F",
+              "folder_separator_icon": " \u276f ",
+              "home_icon": "home",
+              "style": "agnoster_full"
             },
             "style": "diamond",
-            "template": "{{ .UserName }} ",
-            "type": "session"
+            "template": " \ue5ff {{ .Path }}",
+            "trailing_diamond": "",
+            "type": "path"
           },
           {
             "foreground": "#BFA8BF",
+            "foreground_templates": [
+              "{{ if gt .Code 0 }}#fff{{ end }}"
+            ],
             "properties": {
-              "branch_icon": "\ue725 ",
-              "fetch_stash_count": true,
-              "fetch_status": true,
-              "fetch_upstream_icon": true,
-              "fetch_worktree_count": true
+              "always_enabled": true
             },
-            "style": "diamond",
-            "template": "<#fff>{{ .UpstreamIcon }}</>{{ .HEAD }}",
-            "type": "git"
-          },
-          {
-            "foreground": "#BFA8BF",
-            "style": "powerline",
-            "template": " <#fff>\uf120</> {{ .Name }} ",
-            "type": "shell"
+            "style": "plain",
+            "template": " \u276f ",
+            "type": "status"
           }
         ],
         "type": "prompt"
@@ -74,39 +71,6 @@
             "style": "diamond",
             "template": " <#fff>\ue718</> {{ if .PackageManagerIcon }}{{ .PackageManagerIcon }} {{ end }}{{ .Full }} ",
             "type": "node"
-          }
-        ],
-        "type": "prompt"
-      },
-      {
-        "alignment": "left",
-        "newline": true,
-        "segments": [
-          {
-            "foreground": "#B6D6F2",
-            "leading_diamond": "<#BFA8BF>~</>",
-            "properties": {
-              "folder_icon": "\u002F",
-              "folder_separator_icon": " \u276f ",
-              "home_icon": "home",
-              "style": "agnoster_full"
-            },
-            "style": "diamond",
-            "template": " \ue5ff {{ .Path }}",
-            "trailing_diamond": "",
-            "type": "path"
-          },
-          {
-            "foreground": "#BFA8BF",
-            "foreground_templates": [
-              "{{ if gt .Code 0 }}#fff{{ end }}"
-            ],
-            "properties": {
-              "always_enabled": true
-            },
-            "style": "plain",
-            "template": " \u276f ",
-            "type": "status"
           }
         ],
         "type": "prompt"
