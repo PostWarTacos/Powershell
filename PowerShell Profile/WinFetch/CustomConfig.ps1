@@ -1,7 +1,10 @@
 
 # ===== WINFETCH CONFIGURATION =====
 
-$image = "https://raw.githubusercontent.com/PostWarTacos/Powershell/1fe92f04ddbe62e45da4cd182c86b55201ed55de/PowerShell%20Profile/WinFetch/MR30.png"
+Invoke-WebRequest "https://raw.githubusercontent.com/PostWarTacos/Powershell/1fe92f04ddbe62e45da4cd182c86b55201ed55de/PowerShell%20Profile/WinFetch/MR30.png"`
+	-OutFile "~\Documents\Coding\PowerShell\PowerShellProfile\MR30.png"
+	$image = "~\Documents\Coding\PowerShell\PowerShellProfile\MR30.png"
+}
 # $noimage = $true
 
 # Display image using ASCII characters
