@@ -15,8 +15,8 @@ if ( (Get-WmiObject -class win32_OperatingSystem).ProductType -eq 1 ) {
     # WinFetch
     if ( gcm WinFetch ){
 		Invoke-WebRequest "https://raw.githubusercontent.com/PostWarTacos/Powershell/refs/heads/main/PowerShell%20Profile/WinFetch/CustomConfig.ps1"`
-			-OutFile "~\.config\winfetch\CustomConfig.ps1"
-		winfetch -configpath "~\.config\winfetch\CustomConfig.ps1"
+			-OutFile "~\.config\winfetch\Config.ps1"
+		winfetch -configpath "~\.config\winfetch\Config.ps1"
 		winfetch
 	}
 	
