@@ -4,17 +4,21 @@ if ( (Get-WmiObject -class win32_OperatingSystem).ProductType -eq 1 ) {
     If ( -not (Test-Path ~\Documents\Coding\PowerShell\PowerShellProfile) ){
         mkdir ~\Documents\Coding\PowerShell\PowerShellProfile
     }
-	
     # Download configs and apply locally
 	# oh-my-posh
-    Invoke-WebRequest "https://raw.githubusercontent.com/PostWarTacos/Powershell/refs/heads/main/PowerShell%20Profile/uew.json"`
-        -OutFile "~\Documents\Coding\PowerShell\PowerShellProfile\uew.json"
-    oh-my-posh init pwsh --config "~\Documents\Coding\PowerShell\PowerShellProfile\uew.json" | Invoke-Expression
+    If ( gcm oh-my-posh ){
+		Invoke-WebRequest "https://raw.githubusercontent.com/PostWarTacos/Powershell/refs/heads/main/PowerShell%20Profile/uew.json"`
+			-OutFile "~\Documents\Coding\PowerShell\PowerShellProfile\uew.json"
+		oh-my-posh init pwsh --config "~\Documents\Coding\PowerShell\PowerShellProfile\uew.json" | Invoke-Expression
+	}
 	
     # WinFetch
-    Invoke-WebRequest "https://raw.githubusercontent.com/PostWarTacos/Powershell/refs/heads/main/PowerShell%20Profile/WinFetch/CustomConfig.ps1"`
-        -OutFile "~\.config\winfetch\CustomConfig.ps1"
-    winfetch -configpath "~\.config\winfetch\CustomConfig.ps1"
+    if ( gcm WinFetch ){
+		Invoke-WebRequest "https://raw.githubusercontent.com/PostWarTacos/Powershell/refs/heads/main/PowerShell%20Profile/WinFetch/CustomConfig.ps1"`
+			-OutFile "~\.config\winfetch\CustomConfig.ps1"
+		winfetch -configpath "~\.config\winfetch\CustomConfig.ps1"
+		winfetch
+	}
 	
     # Terminal Icons
     Import-Module -Name Terminal-Icons
@@ -24,7 +28,6 @@ if ( (Get-WmiObject -class win32_OperatingSystem).ProductType -eq 1 ) {
         Invoke-WebRequest "https://raw.githubusercontent.com/PostWarTacos/Powershell/refs/heads/main/PowerShell%20Profile/Win%20Terminal%20Settings/settings.json"`
             -OutFile "%LOCALAPPDATA%\Packages\Microsoft.WindowsTerminal_8wekyb3d8bbwe\LocalState\settings.json"
     }
-    winfetch
 }
 
 # Searching for commands with up/down arrow is really handy.  The
