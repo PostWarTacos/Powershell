@@ -2,39 +2,6 @@
     "$schema": "https://raw.githubusercontent.com/JanDeDobbeleer/oh-my-posh/main/themes/schema.json",
     "blocks": [
       {
-        "alignment": "left",
-        "newline": true,
-        "segments": [
-          {
-            "foreground": "#B6D6F2",
-            "leading_diamond": "<#BFA8BF>~</>",
-            "properties": {
-              "folder_icon": "\u002F",
-              "folder_separator_icon": " \u276f ",
-              "home_icon": "home",
-              "style": "agnoster_full"
-            },
-            "style": "diamond",
-            "template": " \ue5ff {{ .Path }}",
-            "trailing_diamond": "",
-            "type": "path"
-          },
-          {
-            "foreground": "#BFA8BF",
-            "foreground_templates": [
-              "{{ if gt .Code 0 }}#fff{{ end }}"
-            ],
-            "properties": {
-              "always_enabled": true
-            },
-            "style": "plain",
-            "template": " \u276f ",
-            "type": "status"
-          }
-        ],
-        "type": "prompt"
-      },
-      {
         "alignment": "right",
         "segments": [
           {
@@ -71,6 +38,38 @@
             "style": "diamond",
             "template": " <#fff>\ue718</> {{ if .PackageManagerIcon }}{{ .PackageManagerIcon }} {{ end }}{{ .Full }} ",
             "type": "node"
+          }
+        ],
+        "type": "prompt"
+      }, 
+	  {
+        "alignment": "left",
+        "newline": true,
+        "segments": [
+          {
+            "foreground": "#B6D6F2",
+            "leading_diamond": "<#BFA8BF>~</>",
+            "properties": {
+              "folder_icon": "\u002F",
+              "home_icon": "home",
+              "style": "folder"
+            },
+            "style": "diamond",
+            "template": " \ue5ff {{ .Path }}",
+            "trailing_diamond": "",
+            "type": "path"
+          },
+          {
+            "foreground": "#BFA8BF",
+            "foreground_templates": [
+              "{{ if gt .Code 0 }}#fff{{ end }}"
+            ],
+            "properties": {
+              "always_enabled": true
+            },
+            "style": "plain",
+            "template": " \u276f ",
+            "type": "status"
           }
         ],
         "type": "prompt"
