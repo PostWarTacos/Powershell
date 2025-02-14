@@ -1,18 +1,33 @@
 #
+# Create coding directory
+#
+If ( whoami -like "*wurtzmt*" ){
+    $user = "C:\users\wurtzmt"
+}
+Else {
+    $user = $env:USERPROFILE
+}
+
+If ( -not ( Test-Path "$user\Documents\Coding" )){
+    mkdir "$user\Documents\Coding"
+}
+
+
+#
 # PowerShell Profile Auto Git Sync
 #
-$RepoPath = Split-Path -Parent $PROFILE
-$GitHubRepo = "https://github.com/PostWarTacos/Powershell/tree/596f850138effbf2810ada9b3fa24cb1d9fd253b/PowerShell%20Profile/Main%20Profile.git"
+$repoURL = "https://github.com/PostWarTacos/PowerShell.git"
+$clonePath = "$user\Documents\Coding\Powershell"
 
 function Sync-GitProfile {
-    if (-not (Test-Path "$RepoPath\.git")) {
+    if ( -not ( Test-Path "$clonePath\.git" )) {
         Write-Host "Initializing Git Repository..."
-        Set-Location $RepoPath
+        Set-Location $clonePath
         git init
-        git remote add origin $GitHubRepo
+        git remote add origin $repoURL
     }
 
-    Set-Location $RepoPath
+    Set-Location $clonePath
     git pull origin main
     git add .
     git commit -m "Auto-sync PowerShell Profile on $(Get-Date -Format 'yyyy-MM-dd HH:mm:ss')"
@@ -28,23 +43,20 @@ Sync-GitProfile
 
 # Test if machine is a server. Don't run these commands if it is
 # Product type 1 = Workstation. 2 = Domain controller. 3 = non-DC server.
-if ( (Get-WmiObject -class win32_OperatingSystem).ProductType -eq 1 ) {
-    If ( -not (Test-Path ~\Documents\Coding\PowerShell\PowerShellProfile) ){
-        mkdir ~\Documents\Coding\PowerShell\PowerShellProfile
-    }
+if (( Get-WmiObject -class win32_OperatingSystem ).ProductType -eq 1 ) {
     # Download configs and apply locally
 	# oh-my-posh
     If ( gcm oh-my-posh ){
 		Invoke-WebRequest "https://raw.githubusercontent.com/PostWarTacos/Powershell/refs/heads/main/PowerShell%20Profile/uew.json"`
-			-OutFile "~\Documents\Coding\PowerShell\PowerShellProfile\uew.json"
-		oh-my-posh init pwsh --config "~\Documents\Coding\PowerShell\PowerShellProfile\uew.json" | Invoke-Expression
+			-OutFile "$env:USERPROFILE\Documents\Coding\PowerShell\PowerShellProfile\uew.json"
+		oh-my-posh init pwsh --config "$env:USERPROFILE\Documents\Coding\PowerShell\PowerShellProfile\uew.json" | Invoke-Expression
 	}
 	
     # WinFetch
     if ( gcm WinFetch ){
 		Invoke-WebRequest "https://raw.githubusercontent.com/PostWarTacos/Powershell/refs/heads/main/PowerShell%20Profile/WinFetch/CustomConfig.ps1"`
-			-OutFile "~\.config\winfetch\Config.ps1"
-		winfetch -configpath "~\.config\winfetch\Config.ps1"
+			-OutFile "$env:USERPROFILE\.config\winfetch\Config.ps1"
+		winfetch -configpath "$env:USERPROFILE\.config\winfetch\Config.ps1"
 		winfetch
 	}
 	
@@ -110,12 +122,12 @@ Set-PSReadLineKeyHandler -Key F7 `
     $history = [System.Collections.ArrayList]@(
         $last = ''
         $lines = ''
-        foreach ($line in [System.IO.File]::ReadLines((Get-PSReadLineOption).HistorySavePath))
+        foreach ( $line in [System.IO.File]::ReadLines((Get-PSReadLineOption).HistorySavePath ))
         {
             if ($line.EndsWith('`'))
             {
-                $line = $line.Substring(0, $line.Length - 1)
-                $lines = if ($lines)
+                $line = $line.Substring( 0, $line.Length - 1 )
+                $lines = if ( $lines )
                 {
                     "$lines`n$line"
                 }
@@ -126,13 +138,13 @@ Set-PSReadLineKeyHandler -Key F7 `
                 continue
             }
 
-            if ($lines)
+            if ( $lines )
             {
                 $line = "$lines`n$line"
                 $lines = ''
             }
 
-            if (($line -cne $last) -and (!$pattern -or ($line -match $pattern)))
+            if (( $line -cne $last ) -and ( !$pattern -or ( $line -match $pattern )))
             {
                 $last = $line
                 $line
@@ -142,7 +154,7 @@ Set-PSReadLineKeyHandler -Key F7 `
     $history.Reverse()
 
     $command = $history | Out-GridView -Title History -PassThru
-    if ($command)
+    if ( $command )
     {
         [Microsoft.PowerShell.PSConsoleReadLine]::RevertLine()
         [Microsoft.PowerShell.PSConsoleReadLine]::Insert(($command -join "`n"))
@@ -155,16 +167,16 @@ Set-PSReadLineKeyHandler -Key RightArrow `
                          -BriefDescription ForwardCharAndAcceptNextSuggestionWord `
                          -LongDescription "Move cursor one character to the right in the current editing line and accept the next word in suggestion when it's at the end of current editing line" `
                          -ScriptBlock {
-    param($key, $arg)
+    param( $key, $arg )
 
     $line = $null
     $cursor = $null
-    [Microsoft.PowerShell.PSConsoleReadLine]::GetBufferState([ref]$line, [ref]$cursor)
+    [Microsoft.PowerShell.PSConsoleReadLine]::GetBufferState( [ref]$line, [ref]$cursor )
 
-    if ($cursor -lt $line.Length) {
-        [Microsoft.PowerShell.PSConsoleReadLine]::ForwardChar($key, $arg)
+    if ( $cursor -lt $line.Length ) {
+        [Microsoft.PowerShell.PSConsoleReadLine]::ForwardChar( $key, $arg )
     } else {
-        [Microsoft.PowerShell.PSConsoleReadLine]::AcceptNextSuggestionWord($key, $arg)
+        [Microsoft.PowerShell.PSConsoleReadLine]::AcceptNextSuggestionWord( $key, $arg )
     }
 }
 
@@ -172,8 +184,8 @@ Set-PSReadLineKeyHandler -Key RightArrow `
 #
 # Transcript
 #
-If ( -not (Test-Path ~\Documents\Coding\PowerShell\Transcripts) ){
-	mkdir ~\Documents\Coding\PowerShell\Transcripts
+If ( -not ( Test-Path "$user\Documents\Coding\PowerShell\Transcripts" )){
+	mkdir "$user\Documents\Coding\PowerShell\Transcripts"
 }
 
-Start-Transcript -OutputDirectory "~\Documents\Coding\PowerShell\Transcripts" -NoClobber -IncludeInvocationHeader
+Start-Transcript -OutputDirectory "$user\Documents\Coding\PowerShell\Transcripts" -NoClobber -IncludeInvocationHeader
