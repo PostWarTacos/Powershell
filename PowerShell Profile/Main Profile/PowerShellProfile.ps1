@@ -30,6 +30,27 @@ if ( (Get-WmiObject -class win32_OperatingSystem).ProductType -eq 1 ) {
     }
 }
 
+#
+# Linux-like Commands
+#
+
+# grep
+function grep($regex, $dir) {
+    if ( $dir ) {
+            ls $dir | select-string $regex
+            return
+    }
+    $input | select-string $regex
+}
+
+# find-file
+function find-file($name) {
+    ls -recurse -filter "*${name}*" -ErrorAction SilentlyContinue | foreach {
+            $place_path = $_.directory
+            echo "${place_path}\${_}"
+    }
+}
+
 # Searching for commands with up/down arrow is really handy.  The
 # option "moves to end" is useful if you want the cursor at the end
 # of the line while cycling through history like it does w/o searching,
@@ -119,7 +140,12 @@ Set-PSReadLineKeyHandler -Key RightArrow `
     }
 }
 
+
+#
+# Transcript
+#
 If ( -not (Test-Path ~\Documents\Coding\PowerShell\Transcripts) ){
 	mkdir ~\Documents\Coding\PowerShell\Transcripts
 }
+
 Start-Transcript -OutputDirectory "~\Documents\Coding\PowerShell\Transcripts" -NoClobber -IncludeInvocationHeader
