@@ -1,3 +1,31 @@
+#
+# PowerShell Profile Auto Git Sync
+#
+$RepoPath = Split-Path -Parent $PROFILE
+$GitHubRepo = "https://github.com/PostWarTacos/Powershell/tree/596f850138effbf2810ada9b3fa24cb1d9fd253b/PowerShell%20Profile/Main%20Profile.git"
+
+function Sync-GitProfile {
+    if (-not (Test-Path "$RepoPath\.git")) {
+        Write-Host "Initializing Git Repository..."
+        Set-Location $RepoPath
+        git init
+        git remote add origin $GitHubRepo
+    }
+
+    Set-Location $RepoPath
+    git pull origin main
+    git add .
+    git commit -m "Auto-sync PowerShell Profile on $(Get-Date -Format 'yyyy-MM-dd HH:mm:ss')"
+    git push origin main
+}
+
+# Run Sync-GitProfile automatically when PowerShell starts
+Sync-GitProfile
+
+#
+# Main Profile
+#
+
 # Test if machine is a server. Don't run these commands if it is
 # Product type 1 = Workstation. 2 = Domain controller. 3 = non-DC server.
 if ( (Get-WmiObject -class win32_OperatingSystem).ProductType -eq 1 ) {
