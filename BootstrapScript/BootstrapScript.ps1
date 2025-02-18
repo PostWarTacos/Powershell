@@ -12,10 +12,10 @@ SteelSeries.GG
 Oracle.VirtualBox
 PrivateInternetAccess.PrivateInternetAccess
 7Zip.7Zip
-Overwolf    (Separate install)
-Nvidia Geforce Experience    (Separate install)
-Canon Printer Drivers   (Gonna be super complex)
-KDAN PDF Reader / Liquid Text Editor    (Decide which one)
+Overwolf    (separate install)
+Nvidia Geforce Experience    (separate install)
+Canon Printer Drivers   (gonna be super complex)
+KDAN PDF Reader / Liquid Text Editor    (decide which one)
 #>
 
 <# Matt's Apps to Install at Home & Work
@@ -26,7 +26,7 @@ AgileBits.1Password
 VSCodium.VSCodium
 Notepad++.Notepad++
 Microsoft.WindowsTerminal
-RuckZuck    (Separate install)
+RuckZuck    (separate install)
 Devolutions.RemoteDesktopManager    (work only)
 #>
 
@@ -115,16 +115,33 @@ function RuckZuck { # Download and install RuckZuck. Not available in winget
 
 <# Matt's Settings
 Green cursor
-Cursor size 3 or 4
+Cursor size 3 or 4  (depends on resolution)
+Zoom and font size  (depends on resolution)
 Short Date
 Short Time
 Long Time
 Disable Recall app/services
-Chris Titus tweaks
 PowerShell Profile
 #>
 
 <# Ashley's Settings
+#>
+
+<# Chris Titus tweaks
+Numlock on boot
+Turn on/off Recommendations in start menu (Win 11)
+Show file extensions
+Disable telemetry
+Disable homegroup
+Disable hibernation
+Debloat Edge
+Remove OneDrive
+Disable Recall
+Set services to manual
+Add "End Task" to right click
+Detailed BSoD ??
+Disable storage sense ??
+Disable consumer features ??
 #>
 
 # Function to open Mouse Pointer Settings UI and set the color & size
