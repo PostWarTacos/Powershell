@@ -118,34 +118,38 @@ function RuckZuck { # Download and install RuckZuck. Not available in winget
 }
 
 <# Matt's Settings
-Green cursor
+Turn on/off Recommendations in start menu (Win 11)
 Cursor size 3 or 4  (depends on resolution)
 Zoom and font size  (depends on resolution)
+Green cursor for Win 10
+Green cursor for Win 11
 Short Date
 Short Time
 Long Time
 Disable Recall app/services
 PowerShell Profile
+Numlock on boot
+Show file extensions
+Disable PowerShell 7 Telemetry
+Disable Teredo tunneling protocol
+Disable hibernation
+Add "End Task" to right click
+Detailed BSoD
+Disable storage sense
+Disable consumer features
 #>
 
 <# Ashley's Settings
 #>
 
 <# Chris Titus tweaks
-Numlock on boot
-Turn on/off Recommendations in start menu (Win 11)
-Show file extensions
-Disable telemetry
+Disable telemetry  (NOTE DONE YET)
+Remove OneDrive  (NOTE DONE YET)
+Set services to manual  (NOTE DONE YET)
+SetIPv4 as preferred
 Disable homegroup
-Disable hibernation
 Debloat Edge
-Remove OneDrive
 Disable Recall
-Set services to manual
-Add "End Task" to right click
-Detailed BSoD
-Disable storage sense
-Disable consumer features
 #>
 
 # Function to open Mouse Pointer Settings UI and set the color & size
@@ -205,6 +209,11 @@ function Set-PowerShellProfile { # Load PowerShell Profile
 function Enable-NumlockBoot { # Enable NumLock on Boot
     Write-host "Enabling Numlock on boot."
     Set-ItemProperty -Path 'HKU:\.DEFAULT\Control Panel\Keyboard' -Name "InitialKeyboardIndicators" -Value "2"
+}
+
+function Disable-Teredo { # Disable Teredo Tunneling protocol
+    Write-Host "Disabling Teredo Tunneling protocol."
+    netsh interface teredo set state disabled
 }
 
 function Disable-StartMenuRecommendations { # Disable Start Menu Recommendations
@@ -307,4 +316,9 @@ function Enable-DetailedBSoD { # Enable Detailed BSoD
 function Disable-ConsumerFeatures { # Disable Consumer Features
     Write-Host "Disabling consumer features..."
     Set-ItemProperty -Path "HKLM:\SOFTWARE\Policies\Microsoft\Windows\CloudContent" -Name "DisableWindowsConsumerFeatures" -Value 1 -Force
+}
+
+function Set-PreferIPv4 { # Set IPv4 as preferred over IPv6
+    Write-Host "Setting IPv4 as preferred over IPv6. This does NOT disable IPv6"
+    Set-ItemProperty -Path "HKLM:\SYSTEM\CurrentControlSet\Services\Tcpip6\Parameters" -Name "DisabledComponents" -Value 32 -Type DWord
 }
