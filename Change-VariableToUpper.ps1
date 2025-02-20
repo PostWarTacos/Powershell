@@ -8,7 +8,7 @@ function Change-VariableToUpper {
     )
 
     if (-not (Test-Path $FILEPATH)) {
-        Write-Host "File not found: $FILEPATH" -ForegroundColor Red
+        Write-Host "File not found: $FILEPATH" -ForegroundColor Yellow
         return
     }
 
