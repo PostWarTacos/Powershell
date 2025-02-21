@@ -4,51 +4,51 @@ $RESULTS = [System.Collections.ArrayList]@()
 # Check if SCCM Client is installed
 $CLIENTPATH = "C:\Windows\CCM\CcmExec.exe"
 if ( Test-Path $CLIENTPATH ){
-    $RESULTS.Add("Found CcmExec.exe. SCCM installed.")
+    $RESULTS.Add( "Found CcmExec.exe. SCCM installed." )
 } Else {
-	$RESULTS.Add("Cannot find CcmExec.exe. SCCM Client is not installed.")
+	$RESULTS.Add( "Cannot find CcmExec.exe. SCCM Client is not installed." )
 }
 				
 # Check if SCCM Client Service is running
 $SERVICE = Get-Service -Name CcmExec -ErrorAction SilentlyContinue
 if ( $SERVICE.Status -eq 'Running' ){
-    $RESULTS.Add("Found CcmExec service and it is running.")
+    $RESULTS.Add( "Found CcmExec service and it is running." )
 } Elseif ( $SERVICE.Status -ne 'Running' ) {
-    $RESULTS.Add("Found CcmExec service but it is NOT running.")
+    $RESULTS.Add( "Found CcmExec service but it is NOT running." )
 } Else {
-	$RESULTS.Add("CcmExec service could not be found. SCCM Client may not be installed.")
+	$RESULTS.Add( "CcmExec service could not be found. SCCM Client may not be installed." )
 }
 
 # Check Client Version
 $SMSCLIENT = Get-WmiObject -Namespace "root\ccm" -Class SMS_Client -ErrorAction SilentlyContinue
 if ( $SMSCLIENT.ClientVersion ) {
-    $RESULTS.Add("SCCM Client Version: $( $SMSCLIENT.ClientVersion )")
+    $RESULTS.Add( "SCCM Client Version: $( $SMSCLIENT.ClientVersion )" )
 } else {
-    $RESULTS.Add("SMS_Client.ClientVersion class not found. SCCM Client may not be installed.")
+    $RESULTS.Add( "SMS_Client.ClientVersion class not found. SCCM Client may not be installed." )
 }    
 
 # Check Management Point Communication
 $MP = Get-WmiObject -Namespace "root\ccm" -Class SMS_Authority -ErrorAction SilentlyContinue
 if ( $MP.Name ) {
-    $RESULTS.Add("SCCM Site found: $( $MP.Name )")
+    $RESULTS.Add( "SCCM Site found: $( $MP.Name )" )
 } else {
-    $RESULTS.Add("SMS_Authority.Name property not found. SCCM Client may not be installed.")
+    $RESULTS.Add( "SMS_Authority.Name property not found. SCCM Client may not be installed." )
 }
 
 # Check Client ID
 $CCMCLIENT = Get-WmiObject -Namespace "root\ccm" -Class CCM_Client -ErrorAction SilentlyContinue
 if ( $CCMCLIENT.ClientId ) {
-    $RESULTS.Add("SCCM Client Client ID found: $( $CCMCLIENT.ClientId )")
+    $RESULTS.Add( "SCCM Client Client ID found: $( $CCMCLIENT.ClientId )" )
 } else {
-    $RESULTS.Add("CCM_Client.ClientId property not found. SCCM Client may not be installed.")
+    $RESULTS.Add( "CCM_Client.ClientId property not found. SCCM Client may not be installed." )
 }   
     
 # Check Management Point Communication
 $MP = Get-WmiObject -Namespace "root\ccm" -Class SMS_Authority -ErrorAction SilentlyContinue
 if ( $MP.CurrentManagementPoint ) {
-    $RESULTS.Add("SCCM Management Point found: $( $MP.CurrentManagementPoint )")
+    $RESULTS.Add( "SCCM Management Point found: $( $MP.CurrentManagementPoint )" )
 } else {
-    $RESULTS.Add("SMS_Authority.CurrentManagementPoint property not found. SCCM Client may not be installed.")
+    $RESULTS.Add( "SMS_Authority.CurrentManagementPoint property not found. SCCM Client may not be installed." )
 }
 
 # Check SCCM Client Health Evaluation (Using CCMEval Logs)
@@ -73,12 +73,12 @@ if ( Test-Path $CCMEVAL_LOGPATH ) {
     $CCMEVAL_RESULTS = $FILTERED_LOGS | findstr /i fail
 
     if ( $CCMEVAL_RESULTS ) {
-        $RESULTS.Add("SCCM Client health check failed per CCMEval logs.")
+        $RESULTS.Add( "SCCM Client health check failed per CCMEval logs." )
     } else {
-        $RESULTS.Add("SCCM Client passed health check per CCMEval logs.")
+        $RESULTS.Add( "SCCM Client passed health check per CCMEval logs." )
     }
 } else {
-    $RESULTS.Add("CCMEval log not found. Unable to verify SCCM Client health.")
+    $RESULTS.Add( "CCMEval log not found. Unable to verify SCCM Client health." )
 }
 
 return $RESULTS
