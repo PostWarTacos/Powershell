@@ -25,7 +25,7 @@ Invoke-Command -Session $SESSIONS {
 
     # Check Client Version
     $SMSCLIENT = Get-WmiObject -Namespace "root\ccm" -Class SMS_Client -ErrorAction SilentlyContinue
-    if ( $SMSCLIENT -and $SMSCLIENT.ClientVersion ) {
+    if ( $SMSCLIENT.ClientVersion ) {
         Write-Host "SCCM Client Version: $( $SMSCLIENT.ClientVersion )"
     } else {
         Write-Host "SMS_Client.ClientVersion class not found. SCCM Client may not be installed." -ForegroundColor Cyan
@@ -33,7 +33,7 @@ Invoke-Command -Session $SESSIONS {
 
     # Check Management Point Communication
     $MP = Get-WmiObject -Namespace "root\ccm" -Class SMS_Authority -ErrorAction SilentlyContinue
-    if ( $MP -and $MP.Name ) {
+    if ( $MP.Name ) {
         Write-Host "SCCM Site found: $( $MP.Name )"
     } else {
         Write-Host "SMS_Authority.Name property not found. SCCM Client may not be installed." -ForegroundColor Cyan
@@ -41,7 +41,7 @@ Invoke-Command -Session $SESSIONS {
 
     # Check Client ID
     $CCMCLIENT = Get-WmiObject -Namespace "root\ccm" -Class CCM_Client -ErrorAction SilentlyContinue
-    if ( $CCMCLIENT -and $CCMCLIENT.ClientId ) {
+    if ( $CCMCLIENT.ClientId ) {
         Write-Host "SCCM Client Client ID found: $( $CCMCLIENT.ClientId )"
     } else {
         Write-Host "CCM_Client.ClientId property not found. SCCM Client may not be installed." -ForegroundColor Cyan
@@ -49,7 +49,7 @@ Invoke-Command -Session $SESSIONS {
     
     # Check Management Point Communication
     $MP = Get-WmiObject -Namespace "root\ccm" -Class SMS_Authority -ErrorAction SilentlyContinue
-    if ( $MP -and $MP.CurrentManagementPoint ) {
+    if ( $MP.CurrentManagementPoint ) {
         Write-Host "SCCM Management Point found: $( $MP.CurrentManagementPoint )"
     } else {
         Write-Host "SMS_Authority.CurrentManagementPoint property not found. SCCM Client may not be installed." -ForegroundColor Cyan
@@ -68,7 +68,7 @@ Invoke-Command -Session $SESSIONS {
         # Read the log file and filter logs from the last week
         $FILTERED_LOGS = Get-Content $CCMEVAL_LOGPATH -Raw | Where-Object {
             if ( $_ -match $PATTERN ) {
-                $LOG_DATE = Get-Date "$( $MATCHES[2] )/$( $MATCHES[1] )/$( $MATCHES[3] )" -Format "MM/dd/yyyy"
+                $LOG_DATE = Get-Date "$( $MATCHES[1] )/$( $MATCHES[2] )/$( $MATCHES[3] )" -Format "MM/dd/yyyy"
                 [datetime]$LOG_DATE -ge $LASTWEEK_DATE
             }
         }
