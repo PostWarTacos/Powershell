@@ -3,11 +3,11 @@
 
 function Change-VariableToUpper {
     param (
-        [Parameter(Mandatory = $TRUE)]
+        [Parameter( Mandatory = $TRUE )]
         [string]$FILEPATH  # Path to the PowerShell script to process
     )
 
-    if (-not (Test-Path $FILEPATH)) {
+    if ( -not ( Test-Path $FILEPATH )) {
         Write-Host "File not found: $FILEPATH" -ForegroundColor Yellow
         return
     }
@@ -19,23 +19,23 @@ function Change-VariableToUpper {
     $VARIABLEPATTERN = '\$[a-zA-Z_][a-zA-Z0-9_]*'
 
     # Find all variables in the script
-    $MATCHES = [regex]::Matches($SCRIPTCONTENT, $VARIABLEPATTERN)
+    $ALLVARs = [regex]::Matches( $SCRIPTCONTENT, $VARIABLEPATTERN )
 
     # Create a dictionary to store original and transformed variable names
     $VARIABLEMAP = @{}
 
-    foreach ($MATCH in $MATCHES) {
+    foreach ( $VAR in $ALLVARS ) {
         $ORIGINALVAR = $MATCH.Value
         $UPPERVAR = '$' + ($ORIGINALVAR.Substring(1).ToUpper())  # Convert everything after $ to uppercase
 
         # Only replace if the variable name is not already uppercase
-        if ($ORIGINALVAR -cne $UPPERVAR) {
+        if ( $ORIGINALVAR -cne $UPPERVAR ) {
             $VARIABLEMAP[$ORIGINALVAR] = $UPPERVAR
         }
     }
 
     # Replace all occurrences of found variables with uppercase versions
-    foreach ($KEY in $VARIABLEMAP.Keys) {
+    foreach ( $KEY in $VARIABLEMAP.Keys ) {
         $SCRIPTCONTENT = $SCRIPTCONTENT -replace [regex]::Escape($KEY), $VARIABLEMAP[$KEY]
     }
 
