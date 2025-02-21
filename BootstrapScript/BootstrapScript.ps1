@@ -36,9 +36,6 @@ RuckZuck    (separate install)
 Devolutions.RemoteDesktopManager    (work only)
 #>
 
-<# Ashley's Apps to Install at Home
-#>
-
 <# Other Apps to List
 ubisoft
 EA
@@ -156,8 +153,7 @@ Disable storage sense
 Disable consumer features
 #>
 
-<# Ashley's Settings
-#>
+## Attempt to add shortcuts to my apps in taskbar and start menu
 
 <# Chris Titus tweaks
 Disable telemetry  (NOTE DONE YET)
