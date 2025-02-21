@@ -1,37 +1,54 @@
 <# Matt's Apps to Install at Home
-EpicGames.EpicGamesLauncher
-Valve.Steam
-Discord.Discord
+7Zip.7Zip
 Brave.Brave
-Mozilla.Thunderbird
+Discord.Discord
+EpicGames.EpicGamesLauncher
 Gimp.Gimp
-Insecure.Nmap
-RevoUninstaller.RevoUninstaller
 GOG.Galaxy
-SteelSeries.GG
+Insecure.Nmap
+Mozilla.Thunderbird
 Oracle.VirtualBox
 PrivateInternetAccess.PrivateInternetAccess
-7Zip.7Zip
+RevoUninstaller.RevoUninstaller
+SteelSeries.GG
+Valve.Steam
+OpenAI.ChatGPT-Desktop      (Add-AppXPackage)
 Overwolf    (separate install)
-Nvidia Geforce Experience    (separate install)
+CurseForge    (separate install)
+AlecaFrame    (separate install)
+NvidiaApp    (separate install)
+Global Protect      (install script in ChatGPT)
 Canon Printer Drivers   (gonna be super complex)
 KDAN PDF Reader / Liquid Text Editor    (decide which one)
 #>
 
 <# Matt's Apps to Install at Home & Work
-Git.Git
-Corsair.iCUE.5
-Spotify.Spotify
 AgileBits.1Password
-VSCodium.VSCodium
-Notepad++.Notepad++
+Corsair.iCUE.5
+Git.Git
+JanDeDobbeleer.OhMyPosh
 Microsoft.WindowsTerminal
+Notion.Notion
+Spotify.Spotify
+VSCodium.VSCodium
+WFetch      (Add-AppXPackage but need to pay $0.99 for it first)
 RuckZuck    (separate install)
 Devolutions.RemoteDesktopManager    (work only)
 #>
 
 <# Ashley's Apps to Install at Home
 #>
+
+<# Other Apps to List
+ubisoft
+EA
+wiresshark
+zoom
+teams
+ms office 2021
+install root
+google chat
+#>>
 
 function Install { # Universal winget function
     param (
@@ -47,25 +64,25 @@ function Install { # Universal winget function
     }
 }
 
-function NvidiaGeforce { # Download and install Geforce Exp. Not available in winget
-    Write-host "Downloading and installing Nvidia Geforce Experience."
-    $downloadURL = "https://www.nvidia.com/en-us/geforce/geforce-experience/download/"
+function NvidiaApp { # Download and install Nvidia App. Not available in winget
+    Write-host "Downloading and installing Nvidia App."
+    $downloadURL = "https://www.nvidia.com/en-us/software/nvidia-app/"
     $downloadPage = Invoke-WebRequest -Uri $downloadURL -UseBasicParsing
-    $installerURL = $downloadPage.Links | Where-Object { $_.href -match "GeForce_Experience_v\d+(\.\d+)*.exe" } | Select-Object -First 1 -ExpandProperty href
+    $installerURL = $downloadPage.Links | Where-Object { $_.href -match "Nvidia_App_v\d+(\.\d+)*.exe" } | Select-Object -First 1 -ExpandProperty href
     
     if ($installerURL) { # Only download and install if valid URL found
-        $installerPath = "$env:TEMP\GeForceExperience.exe"
+        $installerPath = "$env:TEMP\NvidiaApp.exe"
         Invoke-WebRequest -Uri $installerURL -OutFile $installerPath
         If (Test-Path $installerPath){ # Verify downloaded
             Start-Process -FilePath $installerPath -ArgumentList "/silent" -Wait
         }
     }
 
-    $geforceExperience = Get-AppxPackage -Name NVIDIACorp.NVIDIAControlPanel
-    If($geforceExperience){ # Verify installed
-        Write-Output "NVIDIA GeForce Experience installed successfully."
+    $NvidiaApp = Get-AppxPackage -Name NVIDIACorp.NVIDIAControlPanel
+    If($NvidiaApp){ # Verify installed
+        Write-Output "Nvidia App installed successfully."
     } else {
-        Write-Output "Failed to retrieve the latest NVIDIA installer."
+        Write-Output "Failed to retrieve the latest Nvidia App installer."
     }    
 }
 
