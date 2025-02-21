@@ -78,7 +78,7 @@ if ( Test-Path $CCMEVAL_LOGPATH ) {
         $RESULTS.Add("SCCM Client passed health check per CCMEval logs.")
     }
 } else {
-    $RESULTS.Add("CCMEval log not found. Unable to verify SCCM Client health."
+    $RESULTS.Add("CCMEval log not found. Unable to verify SCCM Client health.")
 }
 
 return $RESULTS
