@@ -255,9 +255,9 @@ Disable Recall
 #>
 
 <# IN DEV SETTING CHANGES
-Disable telemetry
-Remove OneDrive
-Set services to manual
+Disable Telemetry
+Completely Remove and Disable OneDrive
+Set certain services to manual
 Add shortcuts to taskbar and start menu
 #>
 
