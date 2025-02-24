@@ -1,84 +1,85 @@
 # Creates an Arraylist which is mutable and easier to manipulate than an array.
-$RESULTS = [System.Collections.ArrayList]@()
+$results = [System.Collections.ArrayList]@()
 
 # Check if SCCM Client is installed
-$CLIENTPATH = "C:\Windows\CCM\CcmExec.exe"
-if ( Test-Path $CLIENTPATH ){
-    $RESULTS.Add( "Found CcmExec.exe. SCCM installed." )
+$clientPath = "C:\Windows\CCM\CcmExec.exe"
+if ( Test-Path $clientPath ){
+    $results.Add( "Found CcmExec.exe. SCCM installed." ) | Out-Null
 } Else {
-	$RESULTS.Add( "Cannot find CcmExec.exe. SCCM Client is not installed." )
+	$results.Add( "Cannot find CcmExec.exe. SCCM Client is not installed." ) | Out-Null
 }
 				
 # Check if SCCM Client Service is running
-$SERVICE = Get-Service -Name CcmExec -ErrorAction SilentlyContinue
-if ( $SERVICE.Status -eq 'Running' ){
-    $RESULTS.Add( "Found CcmExec service and it is running." )
-} Elseif ( $SERVICE.Status -ne 'Running' ) {
-    $RESULTS.Add( "Found CcmExec service but it is NOT running." )
+$service = Get-Service -Name CcmExec -ErrorAction SilentlyContinue
+if ( $service.Status -eq 'Running' ){
+    $results.Add( "Found CcmExec service and it is running." ) | Out-Null
+} Elseif ( $service.Status -ne 'Running' ) {
+    $results.Add( "Found CcmExec service but it is NOT running." ) | Out-Null
 } Else {
-	$RESULTS.Add( "CcmExec service could not be found. SCCM Client may not be installed." )
+	$results.Add( "CcmExec service could not be found. SCCM Client may not be installed." ) | Out-Null
 }
 
 # Check Client Version
-$SMSCLIENT = Get-WmiObject -Namespace "root\ccm" -Class SMS_Client -ErrorAction SilentlyContinue
-if ( $SMSCLIENT.ClientVersion ) {
-    $RESULTS.Add( "SCCM Client Version: $( $SMSCLIENT.ClientVersion )" )
+$smsClient = Get-WmiObject -Namespace "root\ccm" -Class SMS_Client -ErrorAction SilentlyContinue
+if ( $smsClient.ClientVersion ) {
+    $results.Add( "SCCM Client Version: $( $smsClient.ClientVersion )" ) | Out-Null
 } else {
-    $RESULTS.Add( "SMS_Client.ClientVersion class not found. SCCM Client may not be installed." )
+    $results.Add( "SMS_Client.ClientVersion class not found. SCCM Client may not be installed." ) | Out-Null
 }    
 
 # Check Management Point Communication
-$MP = Get-WmiObject -Namespace "root\ccm" -Class SMS_Authority -ErrorAction SilentlyContinue
-if ( $MP.Name ) {
-    $RESULTS.Add( "SCCM Site found: $( $MP.Name )" )
+$mp = Get-WmiObject -Namespace "root\ccm" -Class SMS_Authority -ErrorAction SilentlyContinue
+if ( $mp.Name ) {
+    $results.Add( "SCCM Site found: $( $MP.Name )" ) | Out-Null
 } else {
-    $RESULTS.Add( "SMS_Authority.Name property not found. SCCM Client may not be installed." )
+    $results.Add( "SMS_Authority.Name property not found. SCCM Client may not be installed." ) | Out-Null
 }
 
 # Check Client ID
-$CCMCLIENT = Get-WmiObject -Namespace "root\ccm" -Class CCM_Client -ErrorAction SilentlyContinue
-if ( $CCMCLIENT.ClientId ) {
-    $RESULTS.Add( "SCCM Client Client ID found: $( $CCMCLIENT.ClientId )" )
+$ccmClient = Get-WmiObject -Namespace "root\ccm" -Class CCM_Client -ErrorAction SilentlyContinue
+if ( $ccmClient.ClientId ) {
+    $results.Add( "SCCM Client Client ID found: $( $ccmClient.ClientId )" ) | Out-Null
 } else {
-    $RESULTS.Add( "CCM_Client.ClientId property not found. SCCM Client may not be installed." )
+    $results.Add( "CCM_Client.ClientId property not found. SCCM Client may not be installed." ) | Out-Null
 }   
     
 # Check Management Point Communication
-$MP = Get-WmiObject -Namespace "root\ccm" -Class SMS_Authority -ErrorAction SilentlyContinue
-if ( $MP.CurrentManagementPoint ) {
-    $RESULTS.Add( "SCCM Management Point found: $( $MP.CurrentManagementPoint )" )
+$mp = Get-WmiObject -Namespace "root\ccm" -Class SMS_Authority -ErrorAction SilentlyContinue
+if ( $mp.CurrentManagementPoint ) {
+    $results.Add( "SCCM Management Point found: $( $mp.CurrentManagementPoint )" ) | Out-Null
 } else {
-    $RESULTS.Add( "SMS_Authority.CurrentManagementPoint property not found. SCCM Client may not be installed." )
+    $results.Add( "SMS_Authority.CurrentManagementPoint property not found. SCCM Client may not be installed." ) | Out-Null
 }
 
 # Check SCCM Client Health Evaluation (Using CCMEval Logs)
-$CCMEVAL_LOGPATH = "C:\Windows\CCM\Logs\CCMEval.log"
-if ( Test-Path $CCMEVAL_LOGPATH ) {
+$ccmEvalLogPath = "C:\Windows\CCM\Logs\CCMEval.log"
+if ( Test-Path $ccmEvalLogPath ) {
         
     # Get the current date and calculate the date a week ago
-    $LASTWEEK_DATE = $( Get-Date ).AddDays( -7 )
+    $lastWeekDate = $( Get-Date ).AddDays( -7 )
 
     # Regex pattern to match log entries with dates
-    $PATTERN = '<time=".*?" date="(\d{2})-(\d{2})-(\d{4})"'
+    $pattern = '<time=".*?" date="(\d{2})-(\d{2})-(\d{4})"'
 
     # Read the log file and filter logs from the last week
-    $FILTERED_LOGS = Get-Content $CCMEVAL_LOGPATH -Raw | Where-Object {
-        if ( $_ -match $PATTERN ) {
-            $LOG_DATE = Get-Date "$( $MATCHES[1] )/$( $MATCHES[2] )/$( $MATCHES[3] )" -Format "MM/dd/yyyy"
-            [datetime]$LOG_DATE -ge $LASTWEEK_DATE
+    $filteredLogs = Get-Content $ccmEvalLogPath -Raw | Where-Object {
+        if ( $_ -match $pattern ) {
+            $logDate = Get-Date "$( $matches[1] )/$( $matches[2] )/$( $matches[3] )" -Format "MM/dd/yyyy"
+            [datetime]$logDate -ge $lastWeekDate
         }
     }
 
     # Searches filtered logs (last week) for the string "fail."
-    $CCMEVAL_RESULTS = $FILTERED_LOGS | findstr /i fail
+    $ccmEvalResults = $filteredLogs | findstr /i fail
 
-    if ( $CCMEVAL_RESULTS ) {
-        $RESULTS.Add( "SCCM Client health check failed per CCMEval logs." )
+    if ( $ccmEvalResults ) {
+        $results.Add( "SCCM Client health check failed per CCMEval logs." ) | Out-Null
     } else {
-        $RESULTS.Add( "SCCM Client passed health check per CCMEval logs." )
+        $results.Add( "SCCM Client passed health check per CCMEval logs." ) | Out-Null
     }
 } else {
-    $RESULTS.Add( "CCMEval log not found. Unable to verify SCCM Client health." )
+    $results.Add( "CCMEval log not found. Unable to verify SCCM Client health." ) | Out-Null
 }
 
-return $RESULTS
+$results = $results -join ','
+#return $results
