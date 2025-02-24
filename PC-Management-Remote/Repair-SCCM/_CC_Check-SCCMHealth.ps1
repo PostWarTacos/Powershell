@@ -82,4 +82,4 @@ if ( Test-Path $ccmEvalLogPath ) {
 }
 
 $results = $results -join ','
-#return $results
+return $results
