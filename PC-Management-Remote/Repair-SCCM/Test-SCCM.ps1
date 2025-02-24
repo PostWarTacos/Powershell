@@ -1,3 +1,7 @@
+<#
+#   Based on USAF SCCM-CB guide to trouble SCCM clients
+#>>
+
 <# Broken SCCM
 CARBO071
 CVOLU006

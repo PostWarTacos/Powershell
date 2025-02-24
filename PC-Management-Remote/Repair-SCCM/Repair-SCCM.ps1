@@ -1,3 +1,10 @@
+<#
+#   Intent: Based on US AFCENT System Center Configuration Manger Current Branch (SCCM-CB)
+#       guide to troubleshoot and repair SCCM clients
+#   Date: 24-Feb-25
+#   Author: Matthew Wurtz
+#>
+
 <# Broken SCCM
 CSOON033
 CSHAW002

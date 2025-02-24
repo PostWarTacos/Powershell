@@ -1,3 +1,9 @@
+<#
+#   Intent: Ran from Collection Commander. Will check 7 different points to verify the health of SCCM client
+#   Date: 24-Feb-25
+#   Author: Matthew Wurtz
+#>>
+
 # Creates an Arraylist which is mutable and easier to manipulate than an array.
 $healthLog = [System.Collections.ArrayList]@()
 $healthLogPath = "C:\drivers\CCM\Logs\"
