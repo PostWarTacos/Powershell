@@ -1,54 +1,63 @@
 # Creates an Arraylist which is mutable and easier to manipulate than an array.
-$results = [System.Collections.ArrayList]@()
+$healthLog = [System.Collections.ArrayList]@()
+$healthLogPath = "C:\drivers\CCM\Logs"
+$corruption = 0
 
 # Check if SCCM Client is installed
 $clientPath = "C:\Windows\CCM\CcmExec.exe"
 if ( Test-Path $clientPath ){
-    $results.Add( "Found CcmExec.exe. SCCM installed." ) | Out-Null
+    $healthLog.Add( "[$(get-date -Format "dd-MMM-yy HH:mm:ss")] Message: Found CcmExec.exe. SCCM installed." ) | Out-Null
 } Else {
-	$results.Add( "Cannot find CcmExec.exe. SCCM Client is not installed." ) | Out-Null
+	$healthLog.Add( "[$(get-date -Format "dd-MMM-yy HH:mm:ss")] Message: Cannot find CcmExec.exe. SCCM Client is not installed." ) | Out-Null
+    $corruption += 1
 }
 				
 # Check if SCCM Client Service is running
 $service = Get-Service -Name CcmExec -ErrorAction SilentlyContinue
 if ( $service.Status -eq 'Running' ){
-    $results.Add( "Found CcmExec service and it is running." ) | Out-Null
+    $healthLog.Add( "[$(get-date -Format "dd-MMM-yy HH:mm:ss")] Message: Found CcmExec service and it is running." ) | Out-Null
 } Elseif ( $service.Status -ne 'Running' ) {
-    $results.Add( "Found CcmExec service but it is NOT running." ) | Out-Null
+    $healthLog.Add( "[$(get-date -Format "dd-MMM-yy HH:mm:ss")] Message: Found CcmExec service but it is NOT running." ) | Out-Null
+    $corruption += 1
 } Else {
-	$results.Add( "CcmExec service could not be found. SCCM Client may not be installed." ) | Out-Null
+	$healthLog.Add( "[$(get-date -Format "dd-MMM-yy HH:mm:ss")] Message: CcmExec service could not be found. SCCM Client may not be installed." ) | Out-Null
+    $corruption += 1
 }
 
 # Check Client Version
 $smsClient = Get-WmiObject -Namespace "root\ccm" -Class SMS_Client -ErrorAction SilentlyContinue
 if ( $smsClient.ClientVersion ) {
-    $results.Add( "SCCM Client Version: $( $smsClient.ClientVersion )" ) | Out-Null
+    $healthLog.Add( "[$(get-date -Format "dd-MMM-yy HH:mm:ss")] Message: SCCM Client Version: $( $smsClient.ClientVersion )" ) | Out-Null
 } else {
-    $results.Add( "SMS_Client.ClientVersion class not found. SCCM Client may not be installed." ) | Out-Null
+    $healthLog.Add( "[$(get-date -Format "dd-MMM-yy HH:mm:ss")] Message: SMS_Client.ClientVersion class not found. SCCM Client may not be installed." ) | Out-Null
+    $corruption += 1
 }    
 
 # Check Management Point Communication
 $mp = Get-WmiObject -Namespace "root\ccm" -Class SMS_Authority -ErrorAction SilentlyContinue
 if ( $mp.Name ) {
-    $results.Add( "SCCM Site found: $( $MP.Name )" ) | Out-Null
+    $healthLog.Add( "[$(get-date -Format "dd-MMM-yy HH:mm:ss")] Message: SCCM Site found: $( $MP.Name )" ) | Out-Null
 } else {
-    $results.Add( "SMS_Authority.Name property not found. SCCM Client may not be installed." ) | Out-Null
+    $healthLog.Add( "[$(get-date -Format "dd-MMM-yy HH:mm:ss")] Message: SMS_Authority.Name property not found. SCCM Client may not be installed." ) | Out-Null
+    $corruption += 1
 }
 
 # Check Client ID
 $ccmClient = Get-WmiObject -Namespace "root\ccm" -Class CCM_Client -ErrorAction SilentlyContinue
 if ( $ccmClient.ClientId ) {
-    $results.Add( "SCCM Client Client ID found: $( $ccmClient.ClientId )" ) | Out-Null
+    $healthLog.Add( "[$(get-date -Format "dd-MMM-yy HH:mm:ss")] Message: SCCM Client Client ID found: $( $ccmClient.ClientId )" ) | Out-Null
 } else {
-    $results.Add( "CCM_Client.ClientId property not found. SCCM Client may not be installed." ) | Out-Null
+    $healthLog.Add( "[$(get-date -Format "dd-MMM-yy HH:mm:ss")] Message: CCM_Client.ClientId property not found. SCCM Client may not be installed." ) | Out-Null
+    $corruption += 1
 }   
     
 # Check Management Point Communication
 $mp = Get-WmiObject -Namespace "root\ccm" -Class SMS_Authority -ErrorAction SilentlyContinue
 if ( $mp.CurrentManagementPoint ) {
-    $results.Add( "SCCM Management Point found: $( $mp.CurrentManagementPoint )" ) | Out-Null
+    $healthLog.Add( "[$(get-date -Format "dd-MMM-yy HH:mm:ss")] Message: SCCM Management Point found: $( $mp.CurrentManagementPoint )" ) | Out-Null
 } else {
-    $results.Add( "SMS_Authority.CurrentManagementPoint property not found. SCCM Client may not be installed." ) | Out-Null
+    $healthLog.Add( "[$(get-date -Format "dd-MMM-yy HH:mm:ss")] Message: SMS_Authority.CurrentManagementPoint property not found. SCCM Client may not be installed." ) | Out-Null
+    $corruption += 1
 }
 
 # Check SCCM Client Health Evaluation (Using CCMEval Logs)
@@ -73,13 +82,25 @@ if ( Test-Path $ccmEvalLogPath ) {
     $ccmEvalResults = $filteredLogs | findstr /i fail
 
     if ( $ccmEvalResults ) {
-        $results.Add( "SCCM Client health check failed per CCMEval logs." ) | Out-Null
+        $healthLog.Add( "[$(get-date -Format "dd-MMM-yy HH:mm:ss")] Message: SCCM Client health check failed per CCMEval logs." ) | Out-Null
+        $corruption += 1
     } else {
-        $results.Add( "SCCM Client passed health check per CCMEval logs." ) | Out-Null
+        $healthLog.Add( "[$(get-date -Format "dd-MMM-yy HH:mm:ss")] Message: SCCM Client passed health check per CCMEval logs." ) | Out-Null
     }
 } else {
-    $results.Add( "CCMEval log not found. Unable to verify SCCM Client health." ) | Out-Null
+    $healthLog.Add( "[$(get-date -Format "dd-MMM-yy HH:mm:ss")] Message: CCMEval log not found. Unable to verify SCCM Client health." ) | Out-Null
+    $corruption += 1
 }
 
-$results = $results -join ','
+if ( $corruption -eq 0 ){
+    $results = "Client Healthy"
+} else {
+    $results = "Corrupt Client"
+}
+
+if ( -not ( Test-Path $healthLogPath )){
+    mkdir $healthLogPath
+}
+
+$healthLog >> $healthLogPath
 return $results
