@@ -12,7 +12,6 @@ PrivateInternetAccess.PrivateInternetAccess
 RevoUninstaller.RevoUninstaller
 SteelSeries.GG
 Valve.Steam
-OpenAI.ChatGPT-Desktop      (Add-AppXPackage)
 Overwolf    (separate install)
 CurseForge    (separate install)
 AlecaFrame    (separate install)
@@ -31,28 +30,27 @@ Microsoft.WindowsTerminal
 Notion.Notion
 Spotify.Spotify
 VSCodium.VSCodium
-WFetch      (Add-AppXPackage but need to pay $0.99 for it first)
+WinFetch
+Manually install DoD Certs        (https://militarycac.com/windows8.htm#Windows_RT)
 RuckZuck    (separate install)
 Devolutions.RemoteDesktopManager    (work only)
 #>
 
 <# Other Apps to List
-ubisoft
-EA
-wiresshark
-zoom
-teams
-ms office 2021
-install root
-google chat
-#>>
+Ubisoft.Connect
+ElectronicArts.EADesktop
+WiresharkFoundation.Wireshark
+Zoom.Zoom
+Microsoft.Teams
+ms office 2021      (https://msgang.com/how-to-download-and-install-office-2021-on-windows-10/)
+#>
 
 function Install { # Universal winget function
     param (
         [string]$id  # Define the app to install
     )
     
-    Write-host "Downloading and installing $($id.split('.')[1])."
+    Write-Output "Downloading and installing $($id.split('.')[1])."
     winget install --id=$id  -e
 
     $found = winget list --id=$id 2>$null | Select-String "$id"
@@ -61,8 +59,106 @@ function Install { # Universal winget function
     }
 }
 
-function NvidiaApp { # Download and install Nvidia App. Not available in winget
-    Write-host "Downloading and installing Nvidia App."
+function Install-Winfetch { # Download and install WinFetch. Not available in winget
+    Install-Script winfetch
+}
+
+function Install-DoDCerts { # Download and install DoD Certs.
+    # === NOTE1 ===
+    # If you encounter the error "There is a problem with this website's security certificate."
+    # you have two options:
+    # 1. Manually resolve the certificate issue per your guide.
+    # 2. Bypass certificate validation for downloads (uncomment the following line).
+    #
+    # WARNING: Bypassing certificate validation reduces security.
+    # [System.Net.ServicePointManager]::ServerCertificateValidationCallback = { $true }
+
+    # Define URLs for the certificate files using your provided links.
+    $allCertsUrl = "https://militarycac.com/maccerts/AllCerts.p7b"
+    $doDRootUrl = "https://militarycac.com/CACDrivers/DoDRoot3-6.p7b"
+
+    # Define the Desktop path and target file names.
+    $allCertsFile = "{0}\AllCerts.p7b" -f [System.Environment]::GetFolderPath("Desktop")
+    $doDRootFile = "{0}\DoDRoot3-6.p7b" -f [System.Environment]::GetFolderPath("Desktop")
+
+    # Download AllCerts.p7b.
+    Write-Output "Downloading AllCerts.p7b..."
+    try {
+        Invoke-WebRequest -Uri $allCertsUrl -OutFile $allCertsFile -UseBasicParsing
+        Write-Output "Downloaded AllCerts.p7b to $allCertsFile"
+    }
+    catch {
+        Write-Error "Failed to download AllCerts.p7b: $_"
+        Write-Output "If you see a certificate error, please refer to your certificate troubleshooting guide (NOTE1)."
+        exit
+    }
+
+    # Install AllCerts.p7b into the Intermediate Certification Authorities store (store name: CA).
+    Write-Output "Installing AllCerts.p7b into Intermediate Certification Authorities..."
+    try {
+        certutil -addstore "CA" $allCertsFile
+        Write-Output "Successfully installed AllCerts.p7b"
+    }
+    catch {
+        Write-Error "Failed to install AllCerts.p7b: $_"
+    }
+
+    # Clean up downloaded AllCerts.p7b file
+    Write-Output "Cleaning up downloaded AllCerts.p7b file..."
+    try {
+        Remove-Item -Path $allCertsFile -Force
+        Write-Output "Downloaded AllCerts.p7b file deleted."
+    }
+    catch {
+        Write-Error "Failed to delete AllCerts.p7b file: $_"
+    }
+
+    # Download DoDRoot3-6.p7b.
+    Write-Output "Downloading DoDRoot3-6.p7b..."
+    try {
+        Invoke-WebRequest -Uri $doDRootUrl -OutFile $doDRootFile -UseBasicParsing
+        Write-Output "Downloaded DoDRoot3-6.p7b to $doDRootFile"
+    }
+    catch {
+        Write-Error "Failed to download DoDRoot3-6.p7b: $_"
+        Write-Output "If you see a certificate error, please refer to your certificate troubleshooting guide (NOTE1)."
+        exit
+    }
+
+    # Install DoDRoot3-6.p7b into the Trusted Root Certification Authorities store (store name: ROOT).
+    Write-Output "Installing DoDRoot3-6.p7b into Trusted Root Certification Authorities..."
+    try {
+        certutil -addstore "ROOT" $doDRootFile -f
+        Write-Output "Successfully installed DoDRoot3-6.p7b"
+    }
+    catch {
+        Write-Error "Failed to install DoDRoot3-6.p7b: $_"
+    }
+
+    # Clean up downloaded DoDRoot3-6.p7b file
+    Write-Output "Cleaning up downloaded DoDRoot3-6.p7b file..."
+    try {
+        Remove-Item -Path $doDRootFile -Force
+        Write-Output "Downloaded DoDRoot3-6.p7b file deleted."
+    }
+    catch {
+        Write-Error "Failed to delete DoDRoot3-6.p7b file: $_"
+    }
+
+    # === NOTE2 ===
+    # Since the Cross Cert Removal Tool is only written for regular Windows,
+    # if you need to clear the certificates later, please follow your manual clearance guide.
+    # For example, to remove a certificate manually, you could use:
+    #   Remove-Item -Path Cert:\LocalMachine\ROOT\<CertificateThumbprint>
+    # Make sure to verify certificate details before removal.
+
+    Write-Output "Certificate installation complete."
+    Write-Output "Reminder: If you need to clear installed certificates manually, follow your manual clearance guide (NOTE2)."
+
+}
+
+function Install-NvidiaApp { # Download and install Nvidia App. Not available in winget
+    Write-Output "Downloading and installing Nvidia App."
     $downloadURL = "https://www.nvidia.com/en-us/software/nvidia-app/"
     $downloadPage = Invoke-WebRequest -Uri $downloadURL -UseBasicParsing
     $installerURL = $downloadPage.Links | Where-Object { $_.href -match "Nvidia_App_v\d+(\.\d+)*.exe" } | Select-Object -First 1 -ExpandProperty href
@@ -75,16 +171,16 @@ function NvidiaApp { # Download and install Nvidia App. Not available in winget
         }
     }
 
-    $NvidiaApp = Get-AppxPackage -Name NVIDIACorp.NVIDIAControlPanel
-    If($NvidiaApp){ # Verify installed
+    $nvidiaApp = Get-AppxPackage -Name NVIDIACorp.NVIDIAControlPanel
+    If($nvidiaApp){ # Verify installed
         Write-Output "Nvidia App installed successfully."
     } else {
         Write-Output "Failed to retrieve the latest Nvidia App installer."
     }    
 }
 
-function Overwolf { # Download and install Overwolf. Not available in winget
-    Write-host "Downloading and installing Overwolf."
+function Install-Overwolf { # Download and install Overwolf. Not available in winget
+    Write-Output "Downloading and installing Overwolf."
     $downloadURL = "https://download.overwolf.com/install/Download?utm_source=web_app_store"
     $installerPath = "$env:TEMP\OverwolfInstaller.exe"
     Invoke-WebRequest -Uri $downloadURL -OutFile $installerPath
@@ -101,8 +197,8 @@ function Overwolf { # Download and install Overwolf. Not available in winget
     } 
 }
 
-function RuckZuck { # Download and install RuckZuck. Not available in winget
-    Write-host "Downloading and installing RuckZuck."
+function Install-RuckZuck { # Download and install RuckZuck. Not available in winget
+    Write-Output "Downloading and installing RuckZuck."
     $downloadURL = "https://github.com/rzander/ruckzuck/releases/latest"
     $downloadPage = Invoke-WebRequest -Uri $downloadURL -UseBasicParsing
     $installerURL = $downloadPage.Links | Where-Object { $_.href -match "RuckZuck.exe" } | Select-Object -First 1 -ExpandProperty href
@@ -120,8 +216,8 @@ function RuckZuck { # Download and install RuckZuck. Not available in winget
         $targetPath = "$installerPath\ruckzuck.exe"
         $shortcutPath = [System.IO.Path]::Combine([System.Environment]::GetFolderPath("Desktop"), "RuckZuck.lnk")
         
-        $WScriptShell = New-Object -ComObject WScript.Shell
-        $shortcut = $WScriptShell.CreateShortcut($shortcutPath)
+        $wScriptShell = New-Object -ComObject WScript.Shell
+        $shortcut = $wScriptShell.CreateShortcut($shortcutPath)
         $shortcut.TargetPath = $targetPath
         $shortcut.Save()
         
@@ -130,6 +226,7 @@ function RuckZuck { # Download and install RuckZuck. Not available in winget
         Write-Output "Failed to retrieve the latest RuckZuck."
     }    
 }
+
 
 <# Matt's Settings
 Turn on/off Recommendations in start menu (Win 11)
@@ -151,23 +248,22 @@ Add "End Task" to right click
 Detailed BSoD
 Disable storage sense
 Disable consumer features
-#>
-
-## Attempt to add shortcuts to my apps in taskbar and start menu
-
-<# Chris Titus tweaks
-Disable telemetry  (NOTE DONE YET)
-Remove OneDrive  (NOTE DONE YET)
-Set services to manual  (NOTE DONE YET)
 SetIPv4 as preferred
 Disable homegroup
 Debloat Edge
 Disable Recall
 #>
 
+<# IN DEV SETTING CHANGES
+Disable Telemetry
+Completely Remove and Disable OneDrive
+Set certain services to manual
+Add shortcuts to taskbar and start menu
+#>
+
 # Function to open Mouse Pointer Settings UI and set the color & size
 function Set-Win10Mouse { # Windows 10
-    Write-host "Setting mouse pointer color and size."
+    Write-Output "Setting mouse pointer color and size."
     Start-Process "ms-settings:easeofaccess-mousepointer"  # Open Ease of Access Mouse Settings
     Start-Sleep -Seconds 2  # Wait for settings window to open
 
@@ -189,66 +285,89 @@ function Set-Win10Mouse { # Windows 10
 }
 
 function Set-Win11Mouse { # Windows 11
-    Write-host "Setting mouse pointer color and size."
+    Write-Output "Setting mouse pointer color and size."
 }
 
 function Set-MilDateTimeFormat{ # Mil Date and Time Format
     # Set Short Date Format
-    Write-host "Setting short date format to dd-MMM-yy."
+    Write-Output "Setting short date format to dd-MMM-yy."
     Set-ItemProperty -Path "HKCU:\Control Panel\International" -Name "sShortDate" -Value "dd-MMM-yy"
     
     # Set Short Time Format - 24 clock
-    Write-host "Setting short time to 24 hour clock."
+    Write-Output "Setting short time to 24 hour clock."
     Set-ItemProperty -Path "HKCU:\Control Panel\International" -Name "sShortTime" -Value "HH:mm"
     
     # Set Long Time Format - 24 clock with seconds    
-    Write-host "Setting long time to 24 hour clock with seconds."
+    Write-Output "Setting long time to 24 hour clock with seconds."
     Set-ItemProperty -Path "HKCU:\Control Panel\International" -Name "sLongTime" -Value "HH:mm:ss"
 }
 
 function Disable-Recall { # Disable Recall App/Services (For Windows 11 with Recall)
-    Write-Host "Disabling Recall."
-    if (Get-WindowsOptionalFeature -Online -FeatureName Recall) {
-        DISM /Online /Disable-Feature /FeatureName:Recall
-    } else {
-        Write-Host "Recall feature not found, skipping." -ForegroundColor Yellow
+    Write-Output "Disabling Recall."
+    
+    # Step 1: Disable Recall via Registry Settings
+    $userRegPath = "HKCU:\Software\Policies\Microsoft\Windows\WindowsAI"
+    $systemRegPath = "HKLM:\SOFTWARE\Policies\Microsoft\Windows\WindowsAI"
+
+    New-Item -Path $userRegPath -Force | Out-Null
+    Set-ItemProperty -Path $userRegPath -Name "DisableAIDataAnalysis" -Value 1 -Force
+
+    New-Item -Path $systemRegPath -Force | Out-Null
+    Set-ItemProperty -Path $systemRegPath -Name "DisableAIDataAnalysis" -Value 1 -Force
+
+    Write-Output "Recall has been disabled via registry settings."
+
+    # Step 2: Stop and Disable Recall Services
+    $recallServices = @( "RecallSvc", "RecallIndexerSvc" )
+
+    foreach ( $service in $recallServices ) {
+        if (Get-Service -Name $service -ErrorAction SilentlyContinue) {
+            Stop-Service -Name $service -Force -ErrorAction SilentlyContinue
+            Set-Service -Name $service -StartupType Disabled -ErrorAction SilentlyContinue
+            Write-Output "Service '$service' has been stopped and disabled."
+        } else {
+            Write-Output "Service '$service' not found."
+        }
     }
+
+    # Step 3: Use DISM to Remove Recall Feature
+    Start-Process -NoNewWindow -Wait -FilePath "cmd.exe" -ArgumentList "/c DISM /Online /Disable-Feature /FeatureName:Recall /Quiet /NoRestart"
 }
 
 function Set-PowerShellProfile { # Load PowerShell Profile
-    Write-host "Downloading PowerShell profile from GitHub."
+    Write-Output "Downloading PowerShell profile from GitHub."
 }
 
 function Enable-NumlockBoot { # Enable NumLock on Boot
-    Write-host "Enabling Numlock on boot."
+    Write-Output "Enabling Numlock on boot."
     Set-ItemProperty -Path 'HKU:\.DEFAULT\Control Panel\Keyboard' -Name "InitialKeyboardIndicators" -Value "2"
 }
 
 function Disable-Teredo { # Disable Teredo Tunneling protocol
-    Write-Host "Disabling Teredo Tunneling protocol."
+    Write-Output "Disabling Teredo Tunneling protocol."
     netsh interface teredo set state disabled
 }
 
 function Disable-StartMenuRecommendations { # Disable Start Menu Recommendations
     # Check if the OS is Windows 11
-    Write-host "Disabling Start Menu Recommendations."
-    Write-host "Verfying Windows 11."
+    Write-Output "Disabling Start Menu Recommendations."
+    Write-Output "Verfying Windows 11."
     $windowsBuild = [System.Environment]::OSVersion.Version.Build
     if ($windowsBuild -ge 22000) {
         New-ItemProperty -Path "HKCU:\Software\Microsoft\Windows\CurrentVersion\Explorer\Advanced" -Name "Start_Recommended" -PropertyType DWord -Value 0 -Force
-        Write-host "Start Menu Recommendations disabled."
+        Write-Output "Start Menu Recommendations disabled."
     } else {
-        Write-Host "Skipping Start Menu Recommendations setting (only applies to Windows 11)." -ForegroundColor Yellow
+        Write-Output "Skipping Start Menu Recommendations setting (only applies to Windows 11)." -ForegroundColor Yellow
     }
 }
 
 function Show-FileExtensions { # Show File Extensions
-    Write-Host "Enabling file extensions visibility..."
+    Write-Output "Enabling file extensions visibility..."
     Set-ItemProperty -Path "HKCU:\Software\Microsoft\Windows\CurrentVersion\Explorer\Advanced" -Name "HideFileExt" -Value 0
 }
 
 function Disable-Homegroup { # Disable Homegroup
-    Write-Host "Disabling HomeGroup services..."
+    Write-Output "Disabling HomeGroup services..."
     Stop-Service "HomeGroupListener" -Force -ErrorAction SilentlyContinue
     Stop-Service "HomeGroupProvider" -Force -ErrorAction SilentlyContinue
     Set-Service "HomeGroupListener" -StartupType Disabled
@@ -256,17 +375,17 @@ function Disable-Homegroup { # Disable Homegroup
 }
 
 function Disable-Hibernation { # Disable Hibernation
-    Write-Host "Disabling hibernation..."
+    Write-Output "Disabling hibernation..."
     powercfg.exe /hibernate off
 }
 
 function Disable-StorageSense { # Disable Storage Sense
-    Write-Host "Disabling Storage Sense..."
+    Write-Output "Disabling Storage Sense..."
     Set-ItemProperty -Path "HKCU:\SOFTWARE\Microsoft\Windows\CurrentVersion\StorageSense\Parameters\StoragePolicy" -Name "01" -Value 0 -Type Dword -Force
 }
 
 function Add-TaskbarEndTask { # Add "End Task" to Right-Click Menu
-    Write-Host "Adding ""End Task"" to Taskbar right-click menu"
+    Write-Output "Adding ""End Task"" to Taskbar right-click menu"
     $path = "HKCU:\Software\Microsoft\Windows\CurrentVersion\Explorer\Advanced\TaskbarDeveloperSettings"
     $name = "TaskbarEndTask"
     $value = 1
@@ -281,18 +400,18 @@ function Add-TaskbarEndTask { # Add "End Task" to Right-Click Menu
 }
 
 function Disable-PowerShell7Telemetry { # Disable PowerShell 7 Telemetry
-    write-host "Disabling PowerShell 7 Telemetry"
+    Write-Output "Disabling PowerShell 7 Telemetry"
     [Environment]::SetEnvironmentVariable('POWERSHELL_TELEMETRY_OPTOUT', '1', 'Machine')
 }
 
 function Set-ServicesManual { # Set Common Services to Manual
-    Write-Host "Setting certain services to manual startup."
+    Write-Output "Setting certain services to manual startup."
     # Download TXT file from Github
     # Read file and loop through to set services to manual
 }
 
 function Set-DebloatEdge { # Debloat Edge
-    $RegistryChanges = @(
+    $regChanges = @(
         @{Path="HKLM:\SOFTWARE\Policies\Microsoft\EdgeUpdate"; Name="CreateDesktopShortcutDefault"; Type="DWord"; Value=0}
         @{Path="HKLM:\SOFTWARE\Policies\Microsoft\Edge"; Name="EdgeEnhanceImagesEnabled"; Type="DWord"; Value=0}
         @{Path="HKLM:\SOFTWARE\Policies\Microsoft\Edge"; Name="PersonalizationReportingEnabled"; Type="DWord"; Value=0}
@@ -313,7 +432,7 @@ function Set-DebloatEdge { # Debloat Edge
         @{Path="HKLM:\SOFTWARE\Policies\Microsoft\Edge"; Name="WalletDonationEnabled"; Type="DWord"; Value=0}
     )
 
-    foreach ( $change in $RegistryChanges ) {
+    foreach ( $change in $regChanges ) {
         if ( -not ( Test-Path $change.Path )) {
             New-Item -Path $change.Path -Force | Out-Null
         }
@@ -322,16 +441,16 @@ function Set-DebloatEdge { # Debloat Edge
 }
 
 function Enable-DetailedBSoD { # Enable Detailed BSoD
-    Write-Host "Enabling detailed BSoD..."
+    Write-Output "Enabling detailed BSoD..."
     Set-ItemProperty -Path "HKLM:\SYSTEM\CurrentControlSet\Control\CrashControl" -Name "DisplayParameters" -Value 1 -Force
 }
 
 function Disable-ConsumerFeatures { # Disable Consumer Features
-    Write-Host "Disabling consumer features..."
+    Write-Output "Disabling consumer features..."
     Set-ItemProperty -Path "HKLM:\SOFTWARE\Policies\Microsoft\Windows\CloudContent" -Name "DisableWindowsConsumerFeatures" -Value 1 -Force
 }
 
 function Set-PreferIPv4 { # Set IPv4 as preferred over IPv6
-    Write-Host "Setting IPv4 as preferred over IPv6. This does NOT disable IPv6"
+    Write-Output "Setting IPv4 as preferred over IPv6. This does NOT disable IPv6"
     Set-ItemProperty -Path "HKLM:\SYSTEM\CurrentControlSet\Services\Tcpip6\Parameters" -Name "DisabledComponents" -Value 32 -Type DWord
 }
