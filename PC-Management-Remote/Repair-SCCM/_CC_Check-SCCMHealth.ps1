@@ -1,6 +1,6 @@
 # Creates an Arraylist which is mutable and easier to manipulate than an array.
 $healthLog = [System.Collections.ArrayList]@()
-$healthLogPath = "C:\drivers\CCM\Logs"
+$healthLogPath = "C:\drivers\CCM\Logs\HealthCheck.txt"
 $corruption = 0
 
 # Check if SCCM Client is installed
@@ -93,7 +93,7 @@ if ( Test-Path $ccmEvalLogPath ) {
 }
 
 if ( $corruption -eq 0 ){
-    $results = "Client Healthy"
+    $results = "Healthy Client"
 } else {
     $results = "Corrupt Client"
 }
