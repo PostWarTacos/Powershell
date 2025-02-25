@@ -64,7 +64,7 @@ Write-Host "Running Disk Cleanup..." -ForegroundColor Yellow
 Start-Process -FilePath "cleanmgr.exe" -ArgumentList "/verylowdisk" -NoNewWindow -Wait
 
 # Run DISM for Windows Component Cleanup
-Write-Host "Running DISM Cleanup..." -ForegroundColor Yellow
+Write-Host "Running DISM Cleanup..." -ForegroundColor Cyan
 if ($resetBase) {
     Write-Host "Including /resetbase (Permanent Cleanup)" -ForegroundColor Yellow
     dism /online /cleanup-image /startcomponentcleanup /resetbase
