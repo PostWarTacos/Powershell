@@ -242,6 +242,7 @@ Add "End Task" to right click
 Set IPv4 as preferred
 Debloat Edge
 Detailed BSoD
+Disable unwanted startup apps
 Disable PowerShell 7 Telemetry
 Disable Teredo tunneling protocol
 Disable hibernation
@@ -254,7 +255,6 @@ Disable and remove Recall app/services
 
 <# IN DEV SETTING CHANGES
 Disable Telemetry
-Disable unwanted startup apps
 Uninstall Skype
 Set certain services to manual
 Add shortcuts to taskbar and start menu
@@ -306,7 +306,7 @@ function Set-MilDateTimeFormat{ # Mil Date and Time Format  #~~# WORKS IN WIN11 
     Set-ItemProperty -Path "HKCU:\Control Panel\International" -Name "sLongTime" -Value "HH:mm:ss"
 }
 
-function Disable-Recall { # Disable Recall App/Services (For Windows 11 with Recall)    #~~# APPEARS TO WORK IN WIN11. NEED VERIFY SCRIPT. #~~#
+function Disable-Recall { # Disable Recall App/Services  #~~# WORKS IN WIN11 #~~#
     Write-Output "Disabling Recall."
     
     # Step 1: Disable Recall via Registry Settings
@@ -429,7 +429,7 @@ function Set-PreferIPv4 { # Set IPv4 as preferred over IPv6   #~~# WORKS IN WIN1
     Set-ItemProperty -Path "HKLM:\SYSTEM\CurrentControlSet\Services\Tcpip6\Parameters" -Name "DisabledComponents" -Value 32 -Type DWord
 }
 
-function Uninstall-OneDrive{
+function Uninstall-OneDrive{  #Uninstall Onedrive completely    #~~# WORKS IN WIN11 #~~#
     $OneDrivePath = $($env:OneDrive)
     Write-Host "Removing OneDrive"
     $regPath = "HKCU:\Software\Microsoft\Windows\CurrentVersion\Uninstall\OneDriveSetup.exe"
@@ -527,8 +527,7 @@ function Uninstall-OneDrive{
     }
 }
 
-function Disable-Copilot{
-    # Remove the Windows Copilot package using DISM
+function Disable-Copilot{ # Remove the Windows Copilot package using DISM     #~~# WORKS IN WIN11 #~~#
     Write-Host "Removing Windows Copilot package..."
     try {
         # Remove the Copilot package for the current user (or all users if applicable)
@@ -570,6 +569,59 @@ function Disable-Copilot{
     Write-Host "Windows Copilot has been disabled. A system reboot might be required for all changes to take effect."
 }
 
+function Disable-AutoStart {
+    # List of common startup applications to disable
+    $appsToDisable = @(
+        "OneDrive",
+        "Microsoft Teams",
+        "Skype",
+        "Spotify",
+        "Zoom",
+        "Adobe Creative Cloud",
+        "Google Drive",
+        "Dropbox",
+        "Battle.net",
+        "iTunesHelper",
+        "Cortana",
+        "Java Update Scheduler",
+        "Adobe Updater",
+        "Logitech Updater",
+        "Widgets",
+        "Teams Machine-Wide Installer",
+        "Adobe Acrobat Update Service",
+        "VLC Update",
+        "GoogleChromeUpdate",
+        "BraveBrowserUpdate"
+    )
+
+    # Get all startup applications
+    $startupApps = Get-CimInstance Win32_StartupCommand
+
+    # Loop through the list and disable if found
+    foreach ($app in $appsToDisable) {
+        $match = $startupApps | Where-Object { $_.Name -like "*$app*" -or $_.Command -like "*$app*" }
+        
+        if ($match) {
+            Write-Output "Disabling startup for: $($match.Name)"
+            # Disable startup item in registry (if applicable)
+            $regPath = "HKCU:\Software\Microsoft\Windows\CurrentVersion\Run"
+            if (Test-Path $regPath) {
+                Remove-ItemProperty -Path $regPath -Name $match.Name -ErrorAction SilentlyContinue
+            }
+            
+            # Disable using Task Manager (if applicable)
+            $task = Get-ScheduledTask | Where-Object { $_.TaskName -like "*$app*" }
+            if ($task) {
+                Disable-ScheduledTask -TaskName $task.TaskName
+            }
+        }
+        else {
+            Write-Output "$app not found in startup."
+        }
+    }
+
+    Write-Output "Startup optimization complete."
+}
 #
 # NOT WORKING IN WIN11
 #
