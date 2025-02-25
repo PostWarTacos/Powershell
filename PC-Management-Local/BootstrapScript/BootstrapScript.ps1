@@ -230,13 +230,13 @@ function Install-RuckZuck { # Download and install RuckZuck. Not available in wi
 
 <# Matt's Settings
 Turn on/off Recommendations in start menu (Win 11)
-Cursor size 3 or 4  (depends on resolution)
+Pointer size 3 or 4  (depends on resolution)
 Zoom and font size  (depends on resolution)
-Green cursor for Win 10
-Green cursor for Win 11
+Green cursor
 Short Date
 Short Time
 Long Time
+Completely Remove and Disable OneDrive
 Disable Recall app/services
 PowerShell Profile
 Numlock on boot
@@ -249,20 +249,27 @@ Detailed BSoD
 Disable storage sense
 Disable consumer features
 SetIPv4 as preferred
-Disable homegroup
 Debloat Edge
 Disable Recall
 #>
 
 <# IN DEV SETTING CHANGES
 Disable Telemetry
-Completely Remove and Disable OneDrive
 Set certain services to manual
 Add shortcuts to taskbar and start menu
+Separate ADM account
+Reset background
+Remove options on lockscreen
+Zoom and font size
+Disable Copilot
 #>
 
+function Set-PowerShellProfile { # Load PowerShell Profile
+    Write-Output "Downloading PowerShell profile from GitHub."
+}
+
 # Function to open Mouse Pointer Settings UI and set the color & size
-function Set-Win10Mouse { # Windows 10
+function Set-MousePointer { # Windows 10   #~~# WORKS IN WIN11 #~~#
     Write-Output "Setting mouse pointer color and size."
     Start-Process "ms-settings:easeofaccess-mousepointer"  # Open Ease of Access Mouse Settings
     Start-Sleep -Seconds 2  # Wait for settings window to open
@@ -270,25 +277,21 @@ function Set-Win10Mouse { # Windows 10
     # Send keystrokes to navigate the UI (Requires UIAutomation for full automation)
     Add-Type -AssemblyName System.Windows.Forms
 
-    # Move to Size slider and adjust
-    [System.Windows.Forms.SendKeys]::SendWait("{HOME}{RIGHT}{RIGHT}{RIGHT}{ENTER}")  # Moves to size and increases
-    Start-Sleep -Seconds 1
-
     # Move to Color Picker and set custom lime color
-    [System.Windows.Forms.SendKeys]::SendWait("{TAB}{HOME}{RIGHT}{RIGHT}{RIGHT}{ENTER}")  # Opens color selection
+    [System.Windows.Forms.SendKeys]::SendWait("{TAB}{TAB}{TAB}{TAB}{HOME}{RIGHT}{RIGHT}{RIGHT}{ENTER}")  # Opens color selection
     Start-Sleep -Seconds 1
-    [System.Windows.Forms.SendKeys]::SendWait("{TAB}{HOME}{RIGHT}{ENTER}{LEFT}{ENTER}")  # Selects Lime Green
+    [System.Windows.Forms.SendKeys]::SendWait("{TAB}{HOME}{RIGHT}{ENTER}")  # Selects Lime Green
+
+    # Move to Size slider and adjust
+    [System.Windows.Forms.SendKeys]::SendWait("{TAB}{TAB}{HOME}{RIGHT}{RIGHT}{RIGHT}{ENTER}")  # Moves to size and increases
+    Start-Sleep -Seconds 1
 
     # Close the settings window
     Start-Sleep -Seconds 1
     [System.Windows.Forms.SendKeys]::SendWait("%{F4}")  # Alt+F4 to close
 }
 
-function Set-Win11Mouse { # Windows 11
-    Write-Output "Setting mouse pointer color and size."
-}
-
-function Set-MilDateTimeFormat{ # Mil Date and Time Format
+function Set-MilDateTimeFormat{ # Mil Date and Time Format  #~~# WORKS IN WIN11 #~~#
     # Set Short Date Format
     Write-Output "Setting short date format to dd-MMM-yy."
     Set-ItemProperty -Path "HKCU:\Control Panel\International" -Name "sShortDate" -Value "dd-MMM-yy"
@@ -302,7 +305,7 @@ function Set-MilDateTimeFormat{ # Mil Date and Time Format
     Set-ItemProperty -Path "HKCU:\Control Panel\International" -Name "sLongTime" -Value "HH:mm:ss"
 }
 
-function Disable-Recall { # Disable Recall App/Services (For Windows 11 with Recall)
+function Disable-Recall { # Disable Recall App/Services (For Windows 11 with Recall)    #~~# APPEARS TO WORK IN WIN11. NEED VERIFY SCRIPT. #~~#
     Write-Output "Disabling Recall."
     
     # Step 1: Disable Recall via Registry Settings
@@ -334,57 +337,32 @@ function Disable-Recall { # Disable Recall App/Services (For Windows 11 with Rec
     Start-Process -NoNewWindow -Wait -FilePath "cmd.exe" -ArgumentList "/c DISM /Online /Disable-Feature /FeatureName:Recall /Quiet /NoRestart"
 }
 
-function Set-PowerShellProfile { # Load PowerShell Profile
-    Write-Output "Downloading PowerShell profile from GitHub."
-}
-
-function Enable-NumlockBoot { # Enable NumLock on Boot
+function Enable-NumlockBoot { # Enable NumLock on Boot  #~~# WORKS IN WIN11 #~~#
     Write-Output "Enabling Numlock on boot."
-    Set-ItemProperty -Path 'HKU:\.DEFAULT\Control Panel\Keyboard' -Name "InitialKeyboardIndicators" -Value "2"
+    Set-ItemProperty -Path 'HKCU:\Control Panel\Keyboard' -Name "InitialKeyboardIndicators" -Value "2"
 }
 
-function Disable-Teredo { # Disable Teredo Tunneling protocol
+function Disable-Teredo { # Disable Teredo Tunneling protocol  #~~# WORKS IN WIN11 #~~#
     Write-Output "Disabling Teredo Tunneling protocol."
     netsh interface teredo set state disabled
 }
 
-function Disable-StartMenuRecommendations { # Disable Start Menu Recommendations
-    # Check if the OS is Windows 11
-    Write-Output "Disabling Start Menu Recommendations."
-    Write-Output "Verfying Windows 11."
-    $windowsBuild = [System.Environment]::OSVersion.Version.Build
-    if ($windowsBuild -ge 22000) {
-        New-ItemProperty -Path "HKCU:\Software\Microsoft\Windows\CurrentVersion\Explorer\Advanced" -Name "Start_Recommended" -PropertyType DWord -Value 0 -Force
-        Write-Output "Start Menu Recommendations disabled."
-    } else {
-        Write-Output "Skipping Start Menu Recommendations setting (only applies to Windows 11)." -ForegroundColor Yellow
-    }
-}
-
-function Show-FileExtensions { # Show File Extensions
+function Show-FileExtensions { # Show File Extensions   #~~# WORKS IN WIN11 #~~#
     Write-Output "Enabling file extensions visibility..."
     Set-ItemProperty -Path "HKCU:\Software\Microsoft\Windows\CurrentVersion\Explorer\Advanced" -Name "HideFileExt" -Value 0
 }
 
-function Disable-Homegroup { # Disable Homegroup
-    Write-Output "Disabling HomeGroup services..."
-    Stop-Service "HomeGroupListener" -Force -ErrorAction SilentlyContinue
-    Stop-Service "HomeGroupProvider" -Force -ErrorAction SilentlyContinue
-    Set-Service "HomeGroupListener" -StartupType Disabled
-    Set-Service "HomeGroupProvider" -StartupType Disabled
-}
-
-function Disable-Hibernation { # Disable Hibernation
+function Disable-Hibernation { # Disable Hibernation  #~~# WORKS IN WIN11 #~~#
     Write-Output "Disabling hibernation..."
     powercfg.exe /hibernate off
 }
 
-function Disable-StorageSense { # Disable Storage Sense
+function Disable-StorageSense { # Disable Storage Sense  #~~# WORKS IN WIN11 #~~#
     Write-Output "Disabling Storage Sense..."
     Set-ItemProperty -Path "HKCU:\SOFTWARE\Microsoft\Windows\CurrentVersion\StorageSense\Parameters\StoragePolicy" -Name "01" -Value 0 -Type Dword -Force
 }
 
-function Add-TaskbarEndTask { # Add "End Task" to Right-Click Menu
+function Add-TaskbarEndTask { # Add "End Task" to Right-Click Menu   #~~# WORKS IN WIN11 #~~#
     Write-Output "Adding ""End Task"" to Taskbar right-click menu"
     $path = "HKCU:\Software\Microsoft\Windows\CurrentVersion\Explorer\Advanced\TaskbarDeveloperSettings"
     $name = "TaskbarEndTask"
@@ -399,7 +377,7 @@ function Add-TaskbarEndTask { # Add "End Task" to Right-Click Menu
     }
 }
 
-function Disable-PowerShell7Telemetry { # Disable PowerShell 7 Telemetry
+function Disable-PowerShell7Telemetry { # Disable PowerShell 7 Telemetry  #~~# WORKS IN WIN11 #~~#
     Write-Output "Disabling PowerShell 7 Telemetry"
     [Environment]::SetEnvironmentVariable('POWERSHELL_TELEMETRY_OPTOUT', '1', 'Machine')
 }
@@ -410,7 +388,7 @@ function Set-ServicesManual { # Set Common Services to Manual
     # Read file and loop through to set services to manual
 }
 
-function Set-DebloatEdge { # Debloat Edge
+function Set-DebloatEdge { # Debloat Edge   #~~# WORKS IN WIN11 #~~#
     $regChanges = @(
         @{Path="HKLM:\SOFTWARE\Policies\Microsoft\EdgeUpdate"; Name="CreateDesktopShortcutDefault"; Type="DWord"; Value=0}
         @{Path="HKLM:\SOFTWARE\Policies\Microsoft\Edge"; Name="EdgeEnhanceImagesEnabled"; Type="DWord"; Value=0}
@@ -440,17 +418,137 @@ function Set-DebloatEdge { # Debloat Edge
     }
 }
 
-function Enable-DetailedBSoD { # Enable Detailed BSoD
+function Enable-DetailedBSoD { # Enable Detailed BSoD  #~~# WORKS IN WIN11 #~~#
     Write-Output "Enabling detailed BSoD..."
     Set-ItemProperty -Path "HKLM:\SYSTEM\CurrentControlSet\Control\CrashControl" -Name "DisplayParameters" -Value 1 -Force
 }
 
+function Set-PreferIPv4 { # Set IPv4 as preferred over IPv6   #~~# WORKS IN WIN11 #~~#
+    Write-Output "Setting IPv4 as preferred over IPv6. This does NOT disable IPv6"
+    Set-ItemProperty -Path "HKLM:\SYSTEM\CurrentControlSet\Services\Tcpip6\Parameters" -Name "DisabledComponents" -Value 32 -Type DWord
+}
+
+function Uninstall-OneDrive{
+    $OneDrivePath = $($env:OneDrive)
+    Write-Host "Removing OneDrive"
+    $regPath = "HKCU:\Software\Microsoft\Windows\CurrentVersion\Uninstall\OneDriveSetup.exe"
+    if (Test-Path $regPath) {
+        $OneDriveUninstallString = Get-ItemPropertyValue "$regPath" -Name "UninstallString"
+        $OneDriveExe, $OneDriveArgs = $OneDriveUninstallString.Split(" ")
+        Start-Process -FilePath $OneDriveExe -ArgumentList "$OneDriveArgs /silent" -NoNewWindow -Wait
+    } else {
+        Write-Host "Onedrive dosn't seem to be installed anymore" -ForegroundColor Red
+        return
+    }
+    # Check if OneDrive got Uninstalled
+    if (-not (Test-Path $regPath)) {
+        Write-Host "Copy downloaded Files from the OneDrive Folder to Root UserProfile"
+        Start-Process -FilePath powershell -ArgumentList "robocopy '$($OneDrivePath)' '$($env:USERPROFILE.TrimEnd())\' /mov /e /xj" -NoNewWindow -Wait
+
+        Write-Host "Removing OneDrive leftovers"
+        Remove-Item -Recurse -Force -ErrorAction SilentlyContinue "$env:localappdata\Microsoft\OneDrive"
+        Remove-Item -Recurse -Force -ErrorAction SilentlyContinue "$env:localappdata\OneDrive"
+        Remove-Item -Recurse -Force -ErrorAction SilentlyContinue "$env:programdata\Microsoft OneDrive"
+        Remove-Item -Recurse -Force -ErrorAction SilentlyContinue "$env:systemdrive\OneDriveTemp"
+        Remove-Item -Path "HKCU:\Software\Microsoft\OneDrive" -Recurse -Force
+        # check if directory is empty before removing:
+        If ((Get-ChildItem "$OneDrivePath" -Recurse | Measure-Object).Count -eq 0) {
+            Remove-Item -Recurse -Force -ErrorAction SilentlyContinue "$OneDrivePath"
+        }
+
+        Write-Host "Remove Onedrive from explorer sidebar"
+        # Define the fully qualified paths for the registry keys
+        $clsidPathHKCR = "Registry::HKEY_CLASSES_ROOT\CLSID\{018D5C66-4533-4307-9B53-224DE2ED1FE6}"
+        $clsidPathWow6432 = "Registry::HKEY_LOCAL_MACHINE\Software\Classes\Wow6432Node\CLSID\{018D5C66-4533-4307-9B53-224DE2ED1FE6}"
+
+        # Check and modify the HKCR key if it exists
+        if (Test-Path $clsidPathHKCR) {
+            Set-ItemProperty -Path $clsidPathHKCR -Name "System.IsPinnedToNameSpaceTree" -Value 0
+            Write-Host "Updated System.IsPinnedToNameSpaceTree for HKCR CLSID."
+        } else {
+            Write-Host "The key $clsidPathHKCR does not exist."
+        }
+
+        # Check and modify the Wow6432Node key if it exists
+        if (Test-Path $clsidPathWow6432) {
+            Set-ItemProperty -Path $clsidPathWow6432 -Name "System.IsPinnedToNameSpaceTree" -Value 0
+            Write-Host "Updated System.IsPinnedToNameSpaceTree for Wow6432Node CLSID."
+        } else {
+            Write-Host "The key $clsidPathWow6432 does not exist."
+        }
+        
+        Write-Host "Removing run hook for new users"
+        reg load "hku\Default" "C:\Users\Default\NTUSER.DAT"
+        $regPath = "Registry::HKEY_USERS\Default\SOFTWARE\Microsoft\Windows\CurrentVersion\Run"
+        Remove-ItemProperty -Path $regPath -Name "OneDriveSetup" -ErrorAction SilentlyContinue
+        reg unload "hku\Default"
+
+        Write-Host "Removing startmenu entry"
+        Remove-Item -Force -ErrorAction SilentlyContinue "$env:userprofile\AppData\Roaming\Microsoft\Windows\Start Menu\Programs\OneDrive.lnk"
+
+        Write-Host "Removing scheduled task"
+        Get-ScheduledTask -TaskPath '\' -TaskName 'OneDrive*' -ea SilentlyContinue | Unregister-ScheduledTask -Confirm:$false
+
+        # Add Shell folders restoring default locations
+        Write-Host "Shell Fixing"
+        Set-ItemProperty -Path "HKCU:\Software\Microsoft\Windows\CurrentVersion\Explorer\User Shell Folders" -Name "AppData" -Value "$env:userprofile\AppData\Roaming" -Type ExpandString
+        Set-ItemProperty -Path "HKCU:\Software\Microsoft\Windows\CurrentVersion\Explorer\User Shell Folders" -Name "Cache" -Value "$env:userprofile\AppData\Local\Microsoft\Windows\INetCache" -Type ExpandString
+        Set-ItemProperty -Path "HKCU:\Software\Microsoft\Windows\CurrentVersion\Explorer\User Shell Folders" -Name "Cookies" -Value "$env:userprofile\AppData\Local\Microsoft\Windows\INetCookies" -Type ExpandString
+        Set-ItemProperty -Path "HKCU:\Software\Microsoft\Windows\CurrentVersion\Explorer\User Shell Folders" -Name "Favorites" -Value "$env:userprofile\Favorites" -Type ExpandString
+        Set-ItemProperty -Path "HKCU:\Software\Microsoft\Windows\CurrentVersion\Explorer\User Shell Folders" -Name "History" -Value "$env:userprofile\AppData\Local\Microsoft\Windows\History" -Type ExpandString
+        Set-ItemProperty -Path "HKCU:\Software\Microsoft\Windows\CurrentVersion\Explorer\User Shell Folders" -Name "Local AppData" -Value "$env:userprofile\AppData\Local" -Type ExpandString
+        Set-ItemProperty -Path "HKCU:\Software\Microsoft\Windows\CurrentVersion\Explorer\User Shell Folders" -Name "My Music" -Value "$env:userprofile\Music" -Type ExpandString
+        Set-ItemProperty -Path "HKCU:\Software\Microsoft\Windows\CurrentVersion\Explorer\User Shell Folders" -Name "My Video" -Value "$env:userprofile\Videos" -Type ExpandString
+        Set-ItemProperty -Path "HKCU:\Software\Microsoft\Windows\CurrentVersion\Explorer\User Shell Folders" -Name "NetHood" -Value "$env:userprofile\AppData\Roaming\Microsoft\Windows\Network Shortcuts" -Type ExpandString
+        Set-ItemProperty -Path "HKCU:\Software\Microsoft\Windows\CurrentVersion\Explorer\User Shell Folders" -Name "PrintHood" -Value "$env:userprofile\AppData\Roaming\Microsoft\Windows\Printer Shortcuts" -Type ExpandString
+        Set-ItemProperty -Path "HKCU:\Software\Microsoft\Windows\CurrentVersion\Explorer\User Shell Folders" -Name "Programs" -Value "$env:userprofile\AppData\Roaming\Microsoft\Windows\Start Menu\Programs" -Type ExpandString
+        Set-ItemProperty -Path "HKCU:\Software\Microsoft\Windows\CurrentVersion\Explorer\User Shell Folders" -Name "Recent" -Value "$env:userprofile\AppData\Roaming\Microsoft\Windows\Recent" -Type ExpandString
+        Set-ItemProperty -Path "HKCU:\Software\Microsoft\Windows\CurrentVersion\Explorer\User Shell Folders" -Name "SendTo" -Value "$env:userprofile\AppData\Roaming\Microsoft\Windows\SendTo" -Type ExpandString
+        Set-ItemProperty -Path "HKCU:\Software\Microsoft\Windows\CurrentVersion\Explorer\User Shell Folders" -Name "Start Menu" -Value "$env:userprofile\AppData\Roaming\Microsoft\Windows\Start Menu" -Type ExpandString
+        Set-ItemProperty -Path "HKCU:\Software\Microsoft\Windows\CurrentVersion\Explorer\User Shell Folders" -Name "Startup" -Value "$env:userprofile\AppData\Roaming\Microsoft\Windows\Start Menu\Programs\Startup" -Type ExpandString
+        Set-ItemProperty -Path "HKCU:\Software\Microsoft\Windows\CurrentVersion\Explorer\User Shell Folders" -Name "Templates" -Value "$env:userprofile\AppData\Roaming\Microsoft\Windows\Templates" -Type ExpandString
+        Set-ItemProperty -Path "HKCU:\Software\Microsoft\Windows\CurrentVersion\Explorer\User Shell Folders" -Name "{374DE290-123F-4565-9164-39C4925E467B}" -Value "$env:userprofile\Downloads" -Type ExpandString
+        Set-ItemProperty -Path "HKCU:\Software\Microsoft\Windows\CurrentVersion\Explorer\User Shell Folders" -Name "Desktop" -Value "$env:userprofile\Desktop" -Type ExpandString
+        Set-ItemProperty -Path "HKCU:\Software\Microsoft\Windows\CurrentVersion\Explorer\User Shell Folders" -Name "My Pictures" -Value "$env:userprofile\Pictures" -Type ExpandString
+        Set-ItemProperty -Path "HKCU:\Software\Microsoft\Windows\CurrentVersion\Explorer\User Shell Folders" -Name "Personal" -Value "$env:userprofile\Documents" -Type ExpandString
+        Set-ItemProperty -Path "HKCU:\Software\Microsoft\Windows\CurrentVersion\Explorer\User Shell Folders" -Name "{F42EE2D3-909F-4907-8871-4C22FC0BF756}" -Value "$env:userprofile\Documents" -Type ExpandString
+        Set-ItemProperty -Path "HKCU:\Software\Microsoft\Windows\CurrentVersion\Explorer\User Shell Folders" -Name "{0DDD015D-B06C-45D5-8C4C-F59713854639}" -Value "$env:userprofile\Pictures" -Type ExpandString
+        Write-Host "Restarting explorer"
+        taskkill.exe /F /IM "explorer.exe"
+        Start-Process "explorer.exe"
+
+        Write-Host "Waiting for explorer to complete loading"
+        Write-Host "Please Note - The OneDrive folder at $OneDrivePath may still have items in it. You must manually delete it, but all the files should already be copied to the base user folder."
+        Write-Host "If there are Files missing afterwards, please Login to Onedrive.com and Download them manually" -ForegroundColor Yellow
+        Start-Sleep 5
+    } else {
+        Write-Host "Something went Wrong during the Unistallation of OneDrive" -ForegroundColor Red
+    }
+}
+
+#
+# NOT WORKING IN WIN11
+#
+
+<# NOT WORKING IN WIN11
 function Disable-ConsumerFeatures { # Disable Consumer Features
     Write-Output "Disabling consumer features..."
     Set-ItemProperty -Path "HKLM:\SOFTWARE\Policies\Microsoft\Windows\CloudContent" -Name "DisableWindowsConsumerFeatures" -Value 1 -Force
 }
+#>
 
-function Set-PreferIPv4 { # Set IPv4 as preferred over IPv6
-    Write-Output "Setting IPv4 as preferred over IPv6. This does NOT disable IPv6"
-    Set-ItemProperty -Path "HKLM:\SYSTEM\CurrentControlSet\Services\Tcpip6\Parameters" -Name "DisabledComponents" -Value 32 -Type DWord
+<# NOT WORKING IN WIN11
+function Disable-StartMenuRecommendations { # Disable Start Menu Recommendations
+    # Check if the OS is Windows 11
+    Write-Output "Disabling Start Menu Recommendations."
+    Write-Output "Verfying Windows 11."
+    $windowsBuild = [System.Environment]::OSVersion.Version.Build
+    if ($windowsBuild -ge 22000) {
+        New-ItemProperty -Path "HKCU:\Software\Microsoft\Windows\CurrentVersion\Explorer\Advanced" -Name "Start_Recommended" -PropertyType DWord -Value 0 -Force
+        Write-Output "Start Menu Recommendations disabled."
+    } else {
+        Write-Output "Skipping Start Menu Recommendations setting (only applies to Windows 11)." -ForegroundColor Yellow
+    }
 }
+#>
+
