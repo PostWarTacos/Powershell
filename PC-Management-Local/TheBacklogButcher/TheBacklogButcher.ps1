@@ -13,11 +13,12 @@ $cutoffDate = ( Get-Date ).AddMonths( -6 )
 
 # STEAM VARS
 $steamGames = [System.Collections.ArrayList]::new()
-$steamLibraryPaths = [System.Collections.ArrayList]::new()
+$steamLibPaths = [System.Collections.ArrayList]::new()
+$manifestFiles = [System.Collections.ArrayList]::new()
 
 # EPIC VARS
 $epicGames = [System.Collections.ArrayList]::new()
-$epicLibraryPaths = [System.Collections.ArrayList]::new()
+$epicLibPaths = [System.Collections.ArrayList]::new()
 
 <#
     To add another line to steamLibraryPath...
@@ -52,23 +53,28 @@ function Invoke-UninstallGame { # Function to invoke an uninstall command.
 
 # Steam Games
 function Filter-SteamGames { # Function to filter and uninstall Steam games.  
+    Write-Host "Discovering Steam Libraries..."
+    
     # Should identify Steam libraries automatically, IF they are connected to steam client.
     $steamPath = Get-ItemPropertyValue -Path "HKLM:\SOFTWARE\WOW6432Node\Valve\Steam" -Name "InstallPath" -ErrorAction SilentlyContinue
     
-    if ($steamPath) {
+    if ( $steamPath ) {
         $steamConfigPath = "$steamPath\steamapps\libraryfolders.vdf"
     
-        if (Test-Path $steamConfigPath) {
+        if ( Test-Path $steamConfigPath ) {
             # Read the file and extract paths using regex
-            $steamLibraryData = Get-Content $steamConfigPath -Raw
-            $steamLibraryPaths = $steamLibraryData -match '"\d+"\s*"(.+?)"' | ForEach-Object { $matches[1] }
+            $steamLibData = Get-Content $steamConfigPath -Raw
+            $steamLibPaths = $steamLibData -match '"\d+"\s*"(.+?)"' | ForEach-Object { $matches[1] }
         }
     }
-    Write-Host "Processing Steam games..."
-
-    # Retrieve all manifest files for installed games
-    $manifestFiles = Get-ChildItem -Path $steamLibraryPath -Filter "appmanifest_*.acf"
     
+    Write-Host "Retrieving manifest files..."
+    # Retrieve all manifest files for installed games
+    foreach ( $lib in $steamLibPaths ){
+        $manifestFiles.add($( Get-ChildItem -Path $lib -Filter "appmanifest_*.acf" | Out-Null ))
+    }   
+    
+    Write-Host "Retrieving manifest files for games to cut..."
     foreach ( $file in $manifestFiles ) {
         # Read the entire file content
         $content = Get-Content $file.FullName -Raw
