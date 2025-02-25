@@ -254,6 +254,8 @@ Disable and remove Recall app/services
 
 <# IN DEV SETTING CHANGES
 Disable Telemetry
+Disable unwanted startup apps
+Uninstall Skype
 Set certain services to manual
 Add shortcuts to taskbar and start menu
 Separate ADM account
