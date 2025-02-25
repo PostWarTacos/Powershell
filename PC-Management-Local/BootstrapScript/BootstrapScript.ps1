@@ -227,30 +227,29 @@ function Install-RuckZuck { # Download and install RuckZuck. Not available in wi
     }    
 }
 
-
 <# Matt's Settings
-Turn on/off Recommendations in start menu (Win 11)
-Pointer size 3 or 4  (depends on resolution)
-Zoom and font size  (depends on resolution)
+Turn on/off Recommendations in start menu    (Not working)
+Pointer size 3 or 4    (modify to depend on resolution)
+Zoom and font size    (modify to depend on resolution)
 Green cursor
-Short Date
-Short Time
-Long Time
-Completely Remove and Disable OneDrive
-Disable Recall app/services
+Short Date (dd-MMM-yy)
+24-hour Short Time
+24-hour Long Time w/seconds
 PowerShell Profile
 Numlock on boot
 Show file extensions
+Add "End Task" to right click
+Set IPv4 as preferred
+Debloat Edge
+Detailed BSoD
 Disable PowerShell 7 Telemetry
 Disable Teredo tunneling protocol
 Disable hibernation
-Add "End Task" to right click
-Detailed BSoD
 Disable storage sense
-Disable consumer features
-SetIPv4 as preferred
-Debloat Edge
-Disable Recall
+Disable consumer features    (Not working)
+Disable and remove OneDrive
+Disable and remove Copilot
+Disable and remove Recall app/services
 #>
 
 <# IN DEV SETTING CHANGES
@@ -258,10 +257,10 @@ Disable Telemetry
 Set certain services to manual
 Add shortcuts to taskbar and start menu
 Separate ADM account
-Reset background
-Remove options on lockscreen
+Reset background based on photo saved to Git
 Zoom and font size
-Disable Copilot
+Remove popups on lockscreen
+Modify lockscreen widget
 #>
 
 function Set-PowerShellProfile { # Load PowerShell Profile
@@ -524,6 +523,49 @@ function Uninstall-OneDrive{
     } else {
         Write-Host "Something went Wrong during the Unistallation of OneDrive" -ForegroundColor Red
     }
+}
+
+function Disable-Copilot{
+    # Remove the Windows Copilot package using DISM
+    Write-Host "Removing Windows Copilot package..."
+    try {
+        # Remove the Copilot package for the current user (or all users if applicable)
+        Write-Host "Searching for the Windows Copilot package..."
+        $app = Get-AppxPackage -Name "*Copilot*"
+        if ($app) {
+            Write-Host "Found Copilot package. Removing it..."
+            # Remove for all users
+            $app | Remove-AppxPackage -AllUsers
+            Write-Host "Copilot package removed successfully."
+        } else {
+            Write-Host "No installed Copilot package found."
+        }
+
+        # Optionally, remove the provisioned package so new user profiles don't get it installed
+        Write-Host "Checking for provisioned Copilot package..."
+        $appProv = Get-AppxProvisionedPackage -Online | Where-Object { $_.DisplayName -like "*Copilot*" }
+        if ($appProv) {
+            Write-Host "Found a provisioned Copilot package. Removing it from the system image..."
+            $appProv | Remove-AppxProvisionedPackage -Online
+            Write-Host "Provisioned Copilot package removed successfully."
+        } else {
+            Write-Host "No provisioned Copilot package found."
+        }
+        Write-Host "Windows Copilot package removed successfully."
+    } catch {
+        Write-Error "Failed to remove Windows Copilot package. It might not be installed or an error occurred."
+    }
+
+    # Disable Copilot via registry to prevent any residual functionality
+    Write-Host "Disabling Windows Copilot via registry settings..."
+    $regPath = "HKLM:\SOFTWARE\Policies\Microsoft\Windows\WindowsCopilot"
+    if (-not (Test-Path $regPath)) {
+        New-Item -Path $regPath -Force | Out-Null
+    }
+    # Setting AllowCopilot to 0 disables Copilot
+    New-ItemProperty -Path $regPath -Name "AllowCopilot" -Value 0 -PropertyType DWord -Force
+
+    Write-Host "Windows Copilot has been disabled. A system reboot might be required for all changes to take effect."
 }
 
 #
