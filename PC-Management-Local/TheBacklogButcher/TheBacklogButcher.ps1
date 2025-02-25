@@ -11,8 +11,24 @@ Author  :   Matthew T Wurtz
 # Variables
 $cutoffDate = ( Get-Date ).AddMonths( -6 )
 # Define your Steam library path (adjust if you have multiple libraries)
-$steamLibraryPath = "G:\SteamLibrary\steamapps"
 $steamGames = [System.Collections.ArrayList]@()
+$steamLibraryPath = @(
+    "G:\SteamLibrary\steamapps", `
+    "" `
+)
+
+<#
+    To add another line to steamLibraryPath...
+    Each directory must be in quotes ""
+    If that line is to be followed by another line, add a <comma, space, backtick> to the end of that line.
+    example:
+    "line 1", `
+    "line 2", `
+    "line 3"
+    Notice the no <comma, space, backtick> on line 3.
+    If you added a line 4, then you need to add <comma, space, backtick> first to line 3.
+    PS: Backtick is the key above TAB.
+#>
 
 function Invoke-UninstallGame { # Function to invoke an uninstall command.
     param (
@@ -23,7 +39,8 @@ function Invoke-UninstallGame { # Function to invoke an uninstall command.
     try {
         # This example uses cmd.exe to run the uninstall command. 
         # Adjust the command execution as needed for your environment.
-        Start-Process -FilePath "cmd.exe" -ArgumentList "/c $UninstallString" -Verb RunAs -Wait
+        Start-Process "$UninstallString" -Wait
+        Start-Sleep -Seconds 3
     }
     catch {
         Write-Error "Failed to uninstall game using command: $UninstallString"
@@ -72,10 +89,12 @@ function Filter-SteamGames { # Function to filter and uninstall Steam games
         Write-Host "Uninstalling Steam game $( $game.Name )  " -ForegroundColor Yellow -NoNewline
         Write-Host "Install Date: $( $game.InstallDate )  " -ForegroundColor Cyan -NoNewline
         Write-Host "Last played: $( $game.LastPlayed )" -ForegroundColor Green
-        #Invoke-UninstallGame -UninstallString $game.UninstallString
+        Invoke-UninstallGame -UninstallString $game.UninstallString
     }
 }
 
+# GOG
+<#
 function Filter-GOGGames { # Function to filter and uninstall GOG games
     Write-Host "Processing GOG games..."
     # --- Replace the following placeholder data with your GOG Galaxy data retrieval logic ---
@@ -90,7 +109,10 @@ function Filter-GOGGames { # Function to filter and uninstall GOG games
         Invoke-UninstallGame -UninstallString $game.UninstallString
     }
 }
+#>
 
+# Amazon
+<#
 function Filter-AmazonGames { # Function to filter and uninstall Amazon games
     Write-Host "Processing Amazon games..."
     # --- Replace the following placeholder data with your Amazon Games retrieval logic ---
@@ -105,7 +127,10 @@ function Filter-AmazonGames { # Function to filter and uninstall Amazon games
         Invoke-UninstallGame -UninstallString $game.UninstallString
     }
 }
+#>
 
+# Epic Games
+<#
 function Filter-EpicGames { # Function to filter and uninstall Epic games
     Write-Host "Processing Epic games..."
     # --- Replace the following placeholder data with your Epic Games data retrieval logic ---
@@ -120,7 +145,10 @@ function Filter-EpicGames { # Function to filter and uninstall Epic games
         Invoke-UninstallGame -UninstallString $game.UninstallString
     }
 }
+#>
 
+#EA Games
+<#
 function Filter-EAGames { # Function to filter and uninstall EA games
     Write-Host "Processing EA games..."
     # --- Replace the following placeholder data with your EA (Origin/EA Desktop) retrieval logic ---
@@ -135,7 +163,10 @@ function Filter-EAGames { # Function to filter and uninstall EA games
         Invoke-UninstallGame -UninstallString $game.UninstallString
     }
 }
+#>
 
+# Ubisoft Games
+<#
 function Filter-UbisoftGames { # Function to filter and uninstall Ubisoft games
     Write-Host "Processing Ubisoft games..."
     # --- Replace the following placeholder data with your Ubisoft retrieval logic ---
@@ -150,13 +181,12 @@ function Filter-UbisoftGames { # Function to filter and uninstall Ubisoft games
         Invoke-UninstallGame -UninstallString $game.UninstallString
     }
 }
+#>
 
 # Main execution: run the filters for each launcher
 Filter-SteamGames
-Filter-GOGGames
-Filter-AmazonGames
-Filter-EpicGames
-Filter-EAGames
-Filter-UbisoftGames
-
-Write-Host "Finished processing games. All games not played in the last 6 months have been scheduled for uninstallation."
+#Filter-GOGGames
+#Filter-AmazonGames
+#Filter-EpicGames
+#Filter-EAGames
+#Filter-UbisoftGames
