@@ -37,7 +37,8 @@ function Invoke-UninstallGame { # Function to invoke an uninstall command.
     )
     Write-Host "Executing uninstall command: $UninstallString"
     try {
-        # This example uses cmd.exe to run the uninstall command. 
+        # This example uses Start-Process to run the Steam://uninstall command.
+        # Might need to use cmd.exe for other game launchers.
         # Adjust the command execution as needed for your environment.
         Start-Process "$UninstallString" -Wait
         Start-Sleep -Seconds 3
