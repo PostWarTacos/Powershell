@@ -10,12 +10,14 @@ Author  :   Matthew T Wurtz
 
 # Variables
 $cutoffDate = ( Get-Date ).AddMonths( -6 )
-# Define your Steam library path (adjust if you have multiple libraries)
-$steamGames = [System.Collections.ArrayList]@()
-$steamLibraryPath = @(
-    "G:\SteamLibrary\steamapps", `
-    "" `
-)
+
+# STEAM VARS
+$steamGames = [System.Collections.ArrayList]::new()
+$steamLibraryPaths = [System.Collections.ArrayList]::new()
+
+# EPIC VARS
+$epicGames = [System.Collections.ArrayList]::new()
+$epicLibraryPaths = [System.Collections.ArrayList]::new()
 
 <#
     To add another line to steamLibraryPath...
@@ -48,7 +50,20 @@ function Invoke-UninstallGame { # Function to invoke an uninstall command.
     }
 }
 
-function Filter-SteamGames { # Function to filter and uninstall Steam games
+# Steam Games
+function Filter-SteamGames { # Function to filter and uninstall Steam games.  
+    # Should identify Steam libraries automatically, IF they are connected to steam client.
+    $steamPath = Get-ItemPropertyValue -Path "HKLM:\SOFTWARE\WOW6432Node\Valve\Steam" -Name "InstallPath" -ErrorAction SilentlyContinue
+    
+    if ($steamPath) {
+        $steamConfigPath = "$steamPath\steamapps\libraryfolders.vdf"
+    
+        if (Test-Path $steamConfigPath) {
+            # Read the file and extract paths using regex
+            $steamLibraryData = Get-Content $steamConfigPath -Raw
+            $steamLibraryPaths = $steamLibraryData -match '"\d+"\s*"(.+?)"' | ForEach-Object { $matches[1] }
+        }
+    }
     Write-Host "Processing Steam games..."
 
     # Retrieve all manifest files for installed games
@@ -94,6 +109,22 @@ function Filter-SteamGames { # Function to filter and uninstall Steam games
     }
 }
 
+# Epic Games
+function Filter-EpicGames { # Function to filter and uninstall Epic games
+    Write-Host "Processing Epic games..."
+    # --- Replace the following placeholder data with your Epic Games data retrieval logic ---
+    $games = @(
+        [PSCustomObject]@{Name="EpicGame1"; LastPlayed=(Get-Date).AddMonths(-10); UninstallString="C:\Epic Games\Launcher\Portal\Binaries\UnrealEngineLauncher.exe /uninstall EpicGame1"},
+        [PSCustomObject]@{Name="EpicGame2"; LastPlayed=(Get-Date).AddMonths(-3); UninstallString="C:\Epic Games\Launcher\Portal\Binaries\UnrealEngineLauncher.exe /uninstall EpicGame2"}
+    )
+    # ---------------------------------------------------------------------------------------------
+    $oldGames = $games | Where-Object { $_.LastPlayed -lt $cutoffDate }
+    foreach ($game in $oldGames) {
+        Write-Host "Uninstalling Epic game '$($game.Name)' (Last played: $($game.LastPlayed))"
+        Invoke-UninstallGame -UninstallString $game.UninstallString
+    }
+}
+
 # GOG
 <#
 function Filter-GOGGames { # Function to filter and uninstall GOG games
@@ -125,24 +156,6 @@ function Filter-AmazonGames { # Function to filter and uninstall Amazon games
     $oldGames = $games | Where-Object { $_.LastPlayed -lt $cutoffDate }
     foreach ($game in $oldGames) {
         Write-Host "Uninstalling Amazon game '$($game.Name)' (Last played: $($game.LastPlayed))"
-        Invoke-UninstallGame -UninstallString $game.UninstallString
-    }
-}
-#>
-
-# Epic Games
-<#
-function Filter-EpicGames { # Function to filter and uninstall Epic games
-    Write-Host "Processing Epic games..."
-    # --- Replace the following placeholder data with your Epic Games data retrieval logic ---
-    $games = @(
-        [PSCustomObject]@{Name="EpicGame1"; LastPlayed=(Get-Date).AddMonths(-10); UninstallString="C:\Epic Games\Launcher\Portal\Binaries\UnrealEngineLauncher.exe /uninstall EpicGame1"},
-        [PSCustomObject]@{Name="EpicGame2"; LastPlayed=(Get-Date).AddMonths(-3); UninstallString="C:\Epic Games\Launcher\Portal\Binaries\UnrealEngineLauncher.exe /uninstall EpicGame2"}
-    )
-    # ---------------------------------------------------------------------------------------------
-    $oldGames = $games | Where-Object { $_.LastPlayed -lt $cutoffDate }
-    foreach ($game in $oldGames) {
-        Write-Host "Uninstalling Epic game '$($game.Name)' (Last played: $($game.LastPlayed))"
         Invoke-UninstallGame -UninstallString $game.UninstallString
     }
 }
@@ -185,7 +198,7 @@ function Filter-UbisoftGames { # Function to filter and uninstall Ubisoft games
 #>
 
 # Main execution: run the filters for each launcher
-Filter-SteamGames
+#Filter-SteamGames
 #Filter-GOGGames
 #Filter-AmazonGames
 #Filter-EpicGames
