@@ -36,75 +36,77 @@ Sometimes AV stops the reinstall. Kill AV solution.
 #>
 
 Clear-Host
-$COMPUTERS = @( "CSHAW002" )
-#$COMPUTERS = Get-Content # Pull from txt file
+$computers = @( "CSHAW002" )
+#$computers = Get-Content # Pull from txt file
 Write-Host "Building connections to targets." -ForegroundColor Yellow
-$SESSIONS = New-PSSession -ComputerName $COMPUTERS
+$sessions = New-PSSession -ComputerName $computers
 
 # SCCM reinstall script
-foreach ( $SESSION in $SESSIONS ){
-    $SESSION.computername
-    Invoke-Command -Session $SESSIONS -ScriptBlock {
+foreach ( $session in $sessions ){
+    $session.computername
+    Invoke-Command -Session $sessions -ScriptBlock {
         try {
 	        # Check if SCCM Client is installed
-	        $CLIENTPATH = "C:\Windows\CCM\CcmExec.exe"
-	        if ( -Not ( Test-Path $CLIENTPATH )){
+	        $clientPath = "C:\Windows\CCM\CcmExec.exe"
+	        if ( -Not ( Test-Path $clientPath )){
                 Throw "Cannot find CcmExec.exe. SCCM Client is not installed."
 	        }
 				
 	        # Check if SCCM Client Service is running
-	        $SERVICE = Get-Service -Name CcmExec -ErrorAction SilentlyContinue
-	        if ( $SERVICE.Status -ne 'Running' ) {
+	        $service = Get-Service -Name CcmExec -ErrorAction SilentlyContinue
+	        if ( $service.Status -eq 'Running' ){
+                # Do nothing. Just here to ensure 'Running' never triggers 'Else'
+            } elseif ( $service.Status -ne 'Running' ) {
                 Throw "Found CcmExec service but it is NOT running."
             } Else {
 		        Throw "CcmExec service could not be found. SCCM Client may not be installed."
 	        }
 
             # Check Client Version
-            $SMSCLIENT = Get-WmiObject -Namespace "root\ccm" -Class SMS_Client -ErrorAction SilentlyContinue
-            if ( -not ( $SMSCLIENT.ClientVersion )) {
+            $smsClient = Get-WmiObject -Namespace "root\ccm" -Class SMS_Client -ErrorAction SilentlyContinue
+            if ( -not ( $smsClient.ClientVersion )) {
                 Throw "SMS_Client.ClientVersion class not found. SCCM Client may not be installed."
             }    
 
             # Check Management Point Communication
-            $MP = Get-WmiObject -Namespace "root\ccm" -Class SMS_Authority -ErrorAction SilentlyContinue
-            if ( -not ( $MP.Name )) {
+            $mp = Get-WmiObject -Namespace "root\ccm" -Class SMS_Authority -ErrorAction SilentlyContinue
+            if ( -not ( $mp.Name )) {
                 Throw "SMS_Authority.Name property not found. SCCM Client may not be installed."
             }
 
             # Check Client ID
-            $CCMCLIENT = Get-WmiObject -Namespace "root\ccm" -Class CCM_Client -ErrorAction SilentlyContinue
-            if ( -not ( $CCMCLIENT.ClientId )) {
+            $ccmClient = Get-WmiObject -Namespace "root\ccm" -Class CCM_Client -ErrorAction SilentlyContinue
+            if ( -not ( $ccmClient.ClientId )) {
                 Throw "CCM_Client.ClientId property not found. SCCM Client may not be installed."
             }   
     
             # Check Management Point Communication
-            $MP = Get-WmiObject -Namespace "root\ccm" -Class SMS_Authority -ErrorAction SilentlyContinue
-            if ( -not ( $MP.CurrentManagementPoint )) {
+            $mp = Get-WmiObject -Namespace "root\ccm" -Class SMS_Authority -ErrorAction SilentlyContinue
+            if ( -not ( $mp.CurrentManagementPoint )) {
                 Throw "SMS_Authority.CurrentManagementPoint property not found. SCCM Client may not be installed."
             }
 
             # Check SCCM Client Health Evaluation (Using CCMEval Logs)
-            $CCMEVAL_LOGPATH = "C:\Windows\CCM\Logs\CCMEval.log"
-            if ( Test-Path $CCMEVAL_LOGPATH ) {
+            $ccmEvalLogPath = "C:\Windows\CCM\Logs\CCMEval.log"
+            if ( Test-Path $ccmEvalLogPath ) {
         
                 # Get the current date and calculate the date a week ago
-                $LASTWEEK_DATE = $( Get-Date ).AddDays( -7 )
+                $lastWeekDate = $( Get-Date ).AddDays( -7 )
 
                 # Regex pattern to match log entries with dates
-                $PATTERN = '<time=".*?" date="(\d{2})-(\d{2})-(\d{4})"'
+                $pattern = '<time=".*?" date="(\d{2})-(\d{2})-(\d{4})"'
 
                 # Read the log file and filter logs from the last week
-                $FILTERED_LOGS = Get-Content $CCMEVAL_LOGPATH -Raw | Where-Object {
-                    if ( $_ -match $PATTERN ) {
-                        $LOG_DATE = Get-Date "$( $MATCHES[1] )/$( $MATCHES[2] )/$( $MATCHES[3] )" -Format "MM/dd/yyyy"
-                        [datetime]$LOG_DATE -ge $LASTWEEK_DATE
+                $filteredLogs = Get-Content $ccmEvalLogPath -Raw | Where-Object {
+                    if ( $_ -match $pattern ) {
+                        $logDate = Get-Date "$( $matches[1] )/$( $matches[2] )/$( $matches[3] )" -Format "MM/dd/yyyy"
+                        [datetime]$logDate -ge $lastWeekDate
                     }
                 }
 
-                $CCMEVAL_RESULTS = $FILTERED_LOGS | findstr /i fail
+                $ccmEvalResults = $filteredLogs | findstr /i fail
 
-                if ( $CCMEVAL_RESULTS ) {
+                if ( $ccmEvalResults ) {
                     Throw "SCCM Client health check failed per CCMEval logs."
                 } 
             } else {
@@ -123,22 +125,22 @@ foreach ( $SESSION in $SESSIONS ){
             # Possible this is the only needed fix.
             # Run this first step and then test if it worked before continuing. 
             Write-Host "(Step 1 of 6) Stopping CcmExec to remove SMS certs." -ForegroundColor Yellow
-            $FOUND = Get-Service CcmExec -ErrorAction SilentlyContinue
-            if ( $FOUND ){
+            $found = Get-Service CcmExec -ErrorAction SilentlyContinue
+            if ( $found ){
                 Stop-Service CcmExec -ErrorAction SilentlyContinue
                 do {
                     Start-Sleep -Seconds 3
-                    $SERVICESTATUS = Get-Service -Name CcmExec
-                } while ($SERVICESTATUS.Status -ne 'Stopped')
+                    $service = Get-Service -Name CcmExec
+                } while ($.Status -ne 'Stopped')
                 Get-ChildItem Cert:\LocalMachine\SMS | Remove-Item
                 Start-Service CcmExec -ErrorAction SilentlyContinue
 
                 # Verify service start
                 Start-Sleep -Seconds 5  # Allow some time for the service to start
-                $SERVICESTATUS = Get-Service -Name CcmExec
+                $service = Get-Service -Name CcmExec
 
                 # Announce success/fail
-                if ( $SERVICESTATUS.Status -eq 'Running' ) {
+                if ( $service.Status -eq 'Running' ) {
                     Write-Host "Service restarted successfully. Check if issue is resolved. Ending actions on current target." -ForegroundColor Yellow
                     Write-Host "Disconnecting from current session and moving to the next target." -ForegroundColor Yellow
                     $PSSENDERINFO = $( $EXECUTIONCONTEXT.SessionState.PSVariable.GetValue( "PSSenderInfo" ))
@@ -163,28 +165,28 @@ foreach ( $SESSION in $SESSIONS ){
 
             # Remove both services “ccmsetup” and “SMS Agent Host”
             Write-Host "(Step 3 of 6) Stopping and removing CcmExec and CcmSetup services." -ForegroundColor Yellow
-            $SERVICES = @(
+            $services = @(
                 "ccmexec",
                 "ccmsetup"
             )
-            foreach ( $SERVICE in $SERVICES ){
-                if (get-service $SERVICE){
-                    Stop-Service $SERVICE -Force
-                    sc delete $SERVICE
+            foreach ( $service in $services ){
+                if (get-service $service){
+                    Stop-Service $service -Force
+                    sc delete $service
                 } else{
-                    Write-Host "$SERVICE service not found. Continuing."
+                    Write-Host "$service service not found. Continuing."
                 }        
             }
 
             # Delete the folders for SCCM
             Write-Host "(Step 4 of 6) Deleting all SCCM folders and files." -ForegroundColor Yellow
-            $FILES = @(
+            $files = @(
                 "C:\Windows\CCM",
                 "C:\Windows\ccmcache",
                 "C:\Windows\ccmsetup",
                 "C:\Windows\SMSCFG.ini"
             )
-            foreach ( $FILE in $FILES ){
+            foreach ( $file in $files ){
                 if ( Test-Path $FILE ){
                     Remove-Item $FILE -Recurse -Force
                 } else{
@@ -194,7 +196,7 @@ foreach ( $SESSION in $SESSIONS ){
 
             # Delete the main registry keys associated with SCCM
             Write-Host "(Step 5 of 6) Deletinag all SCCM reg keys." -ForegroundColor Yellow
-            $KEYS = @(
+            $keys= @(
                 "HKLM:\Software\Microsoft\CCM",
                 "HKLM:\Software\Microsoft\SMS",
                 "HKLM:\Software\Microsoft\ccmsetup",
@@ -205,7 +207,7 @@ foreach ( $SESSION in $SESSIONS ){
                 "HKLM:\System\CurrentControlSet\Services\prepdrvr",
                 "HKLM:\System\CurrentControlSet\Services\eventlog\Application\Configuration Manager Agent"
             )
-            foreach ( $KEY in $KEYS ){
+            foreach ( $key in $keys ){
                 if( Test-Path $KEY ){
                     Remove-Item $KEY -Force
                 } Else { Write-Host "Could not find $KEY. Continuing." }    
@@ -229,7 +231,7 @@ foreach ( $SESSION in $SESSIONS ){
         
             # Reinstall BITS script
             <#
-            Invoke-Command -Session $SESSIONS -ScriptBlock {
+            Invoke-Command -Session $sessions -ScriptBlock {
                 sc sdset bits "D:(A;;CCDCLCSWRPWPDTLOCRSDRCWDWO;;;SY)(A;;CCDCLCSWRPWPDTLOCRSDRCWDWO;;;BA)(A;;CCLCSWLOCRRC;;;IU)(A;;CCLCSWLOCRRC;;;SU)S:(AU;SAFA;WDWO;;;BA)"
                 sc config bits start= auto
                 Remove-Item -Path "$ENV:ALLUSERSPROFILE\Application Data\Microsoft\Network\Downloader\qmgr0.dat" -Force -ErrorAction SilentlyContinue
