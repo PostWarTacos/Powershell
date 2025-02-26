@@ -48,9 +48,9 @@ try {
         
     # Check if SCCM Client Service is running
     $service = Get-Service -Name CcmExec -ErrorAction SilentlyContinue
-    if ( $service.Status -eq 'Running' ){
+    if ( $service.Status -and $service.Status -eq 'Running' ){
         # Do nothing. Just here to ensure 'Running' never triggers 'Else'
-    } elseif ( $service.Status -ne 'Running' ) {
+    } elseif ( $service.Status -and $service.Status -ne 'Running' ) {
         $corruption += 1
         Throw "Found CcmExec service but it is NOT running."
     } Else {
@@ -129,7 +129,7 @@ catch {
     Write-Host "(Step 1 of 6) Stopping CcmExec to remove SMS certs." -ForegroundColor Yellow
     $found = Get-Service CcmExec -ErrorAction SilentlyContinue
     if ( $found ){
-        Stop-Service CcmExec -ErrorAction SilentlyContinue
+        Stop-Service CcmExec -ErrorAction SilentlyContinue -Force
         do {
             Start-Sleep -Seconds 3
             $service = Get-Service -Name CcmExec
