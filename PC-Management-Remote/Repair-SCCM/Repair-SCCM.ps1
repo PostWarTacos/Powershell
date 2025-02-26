@@ -33,16 +33,13 @@ Sometimes AV stops the reinstall. Kill AV solution.
 Clear-Host
 
 # Creates an Arraylist which is mutable and easier to manipulate than an array.
-$healthLog = [System.Collections.ArrayList]@()
 $healthLogPath = "C:\drivers\CCM\Logs\"
-$corruption = 0
 
 
 try {
     # Check if SCCM Client is installed
     $clientPath = "C:\Windows\CCM\CcmExec.exe"
     if ( -Not ( Test-Path $clientPath )){
-        $corruption += 1
         Throw "Cannot find CcmExec.exe. SCCM Client is not installed."
     }
         
@@ -51,38 +48,32 @@ try {
     if ( $service.Status -and $service.Status -eq 'Running' ){
         # Do nothing. Just here to ensure 'Running' never triggers 'Else'
     } elseif ( $service.Status -and $service.Status -ne 'Running' ) {
-        $corruption += 1
         Throw "Found CcmExec service but it is NOT running."
     } Else {
-        $corruption += 1
         Throw "CcmExec service could not be found. SCCM Client may not be installed."
     }
 
     # Check Client Version
     $smsClient = Get-WmiObject -Namespace "root\ccm" -Class SMS_Client -ErrorAction SilentlyContinue
     if ( -not ( $smsClient.ClientVersion )) {
-        $corruption += 1
         Throw "SMS_Client.ClientVersion class not found. SCCM Client may not be installed."
     }    
 
     # Check Management Point Communication
     $mp = Get-WmiObject -Namespace "root\ccm" -Class SMS_Authority -ErrorAction SilentlyContinue
     if ( -not ( $mp.Name )) {
-        $corruption += 1
         Throw "SMS_Authority.Name property not found. SCCM Client may not be installed."
     }
 
     # Check Client ID
     $ccmClient = Get-WmiObject -Namespace "root\ccm" -Class CCM_Client -ErrorAction SilentlyContinue
     if ( -not ( $ccmClient.ClientId )) {
-        $corruption += 1
         Throw "CCM_Client.ClientId property not found. SCCM Client may not be installed."
     }   
 
     # Check Management Point Communication
     $mp = Get-WmiObject -Namespace "root\ccm" -Class SMS_Authority -ErrorAction SilentlyContinue
     if ( -not ( $mp.CurrentManagementPoint )) {
-        $corruption += 1
         Throw "SMS_Authority.CurrentManagementPoint property not found. SCCM Client may not be installed."
     }
 
@@ -107,11 +98,9 @@ try {
         $ccmEvalResults = $filteredLogs | findstr /i fail
 
         if ( $ccmEvalResults ) {
-            $corruption += 1
             Throw "SCCM Client health check failed per CCMEval logs."
         } 
     } else {
-        $corruption += 1
         Throw "CCMEval log not found. Unable to verify SCCM Client health."
     }
 
@@ -120,6 +109,8 @@ try {
     return 0
 }
 catch {
+    "[$(get-date -Format "dd-MMM-yy HH:mm:ss")] Message: $($_)" >> "$healthLogPath\HealthCheck.txt" 
+    "[$(get-date -Format "dd-MMM-yy HH:mm:ss")] Message: Attempting repair actions." >> "$healthLogPath\HealthCheck.txt" 
     Write-Host "An error occurred: $($_)" -ForegroundColor Cyan
     Write-Host "Running all repair actions..."
 
