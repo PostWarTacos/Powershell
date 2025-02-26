@@ -157,7 +157,7 @@ function Install-DoDCerts { # Download and install DoD Certs.
 
 }
 
-function Install-NvidiaApp { # Download and install Nvidia App. Not available in winget
+function Install-NvidiaApp { # Download and install Nvidia App. Not available in winget.    #~~# WORKS IN WIN11 #~~#
     Write-Output "Downloading and installing Nvidia App."
     $downloadURL = "https://www.nvidia.com/en-us/software/nvidia-app/"
     $downloadPage = Invoke-WebRequest -Uri $downloadURL -UseBasicParsing
@@ -167,7 +167,7 @@ function Install-NvidiaApp { # Download and install Nvidia App. Not available in
         $installerPath = "$env:TEMP\NvidiaApp.exe"
         Invoke-WebRequest -Uri $installerURL -OutFile $installerPath
         If (Test-Path $installerPath){ # Verify downloaded
-            Start-Process -FilePath $installerPath -ArgumentList "/silent" -Wait
+            Start-Process -FilePath $installerPath -ArgumentList "/s" -Wait
         }
     }
 
@@ -186,29 +186,28 @@ function Install-Overwolf { # Download and install Overwolf. Not available in wi
     Invoke-WebRequest -Uri $downloadURL -OutFile $installerPath
     
     If (Test-Path $installerPath){ # Verify downloaded
-        Start-Process -FilePath $installerPath -ArgumentList "/silent" -Wait
+        Start-Process -FilePath $installerPath -ArgumentList "/s" -Wait
     }
 
     $overwolf = reg query "HKEY_LOCAL_MACHINE\SOFTWARE\WOW6432Node\Microsoft\Windows\CurrentVersion\Uninstall" /s | findstr /I "Overwolf"
     If($overwolf){ # Verify installed
-        Write-Output "NVIDIA GeForce Experience installed successfully."
+        Write-Output "Overwolf installed successfully."
     } else {
-        Write-Output "Failed to retrieve the latest NVIDIA installer."
+        Write-Output "Failed to retrieve the latest Overwolf installer."
     } 
 }
 
-function Install-RuckZuck { # Download and install RuckZuck. Not available in winget
+function Install-RuckZuck { # Download and install RuckZuck. Not available in winget   #~~# WORKS IN WIN11 #~~#
     Write-Output "Downloading and installing RuckZuck."
-    $downloadURL = "https://github.com/rzander/ruckzuck/releases/latest"
-    $downloadPage = Invoke-WebRequest -Uri $downloadURL -UseBasicParsing
-    $installerURL = $downloadPage.Links | Where-Object { $_.href -match "RuckZuck.exe" } | Select-Object -First 1 -ExpandProperty href
+    $downloadURL = "https://github.com/rzander/ruckzuck/releases/download/1.7.3.8/RuckZuck.exe"
+    $installerPath = "C:\Program Files (x86)\RuckZuck"
+    #$installerURL = $downloadPage.Links | Where-Object { $_.href -match "RuckZuck.exe" } | Select-Object -First 1 -ExpandProperty href
     
-    if ($installerURL) { # Only download and install if valid URL found
-        $installerPath = "C:\Program Files (x86)\RuckZuck"
+    if ($downloadURL) { # Only download and install if valid URL found
         If( -not ( Test-Path $installerPath )){
             mkdir $installerPath
         }
-        Invoke-WebRequest -Uri $installerURL -OutFile $installerPath
+        Invoke-WebRequest -Uri $downloadURL -OutFile "$installerPath\RuckZuck.exe"
     }
 
     $found = Test-Path "$installerPath\RuckZuck.exe"
@@ -224,7 +223,7 @@ function Install-RuckZuck { # Download and install RuckZuck. Not available in wi
         Write-Output "RuckZuck installed successfully."
     } else {
         Write-Output "Failed to retrieve the latest RuckZuck."
-    }    
+    }
 }
 
 <# Matt's Settings
@@ -242,7 +241,6 @@ Add "End Task" to right click
 Set IPv4 as preferred
 Debloat Edge
 Detailed BSoD
-Disable unwanted startup apps
 Disable PowerShell 7 Telemetry
 Disable Teredo tunneling protocol
 Disable hibernation
@@ -255,7 +253,6 @@ Disable and remove Recall app/services
 
 <# IN DEV SETTING CHANGES
 Disable Telemetry
-Uninstall Skype
 Set certain services to manual
 Add shortcuts to taskbar and start menu
 Separate ADM account
@@ -270,7 +267,7 @@ function Set-PowerShellProfile { # Load PowerShell Profile
 }
 
 # Function to open Mouse Pointer Settings UI and set the color & size
-function Set-MousePointer { # Windows 10   #~~# WORKS IN WIN11 #~~#
+function Set-MousePointer {   #~~# WORKS IN WIN11 #~~#
     Write-Output "Setting mouse pointer color and size."
     Start-Process "ms-settings:easeofaccess-mousepointer"  # Open Ease of Access Mouse Settings
     Start-Sleep -Seconds 2  # Wait for settings window to open
@@ -306,7 +303,7 @@ function Set-MilDateTimeFormat{ # Mil Date and Time Format  #~~# WORKS IN WIN11 
     Set-ItemProperty -Path "HKCU:\Control Panel\International" -Name "sLongTime" -Value "HH:mm:ss"
 }
 
-function Disable-Recall { # Disable Recall App/Services  #~~# WORKS IN WIN11 #~~#
+function Disable-Recall { # Disable Recall App/Services (For Windows 11 with Recall)    #~~# APPEARS TO WORK IN WIN11. NEED VERIFY SCRIPT. #~~#
     Write-Output "Disabling Recall."
     
     # Step 1: Disable Recall via Registry Settings
@@ -429,7 +426,7 @@ function Set-PreferIPv4 { # Set IPv4 as preferred over IPv6   #~~# WORKS IN WIN1
     Set-ItemProperty -Path "HKLM:\SYSTEM\CurrentControlSet\Services\Tcpip6\Parameters" -Name "DisabledComponents" -Value 32 -Type DWord
 }
 
-function Uninstall-OneDrive{  #Uninstall Onedrive completely    #~~# WORKS IN WIN11 #~~#
+function Uninstall-OneDrive{
     $OneDrivePath = $($env:OneDrive)
     Write-Host "Removing OneDrive"
     $regPath = "HKCU:\Software\Microsoft\Windows\CurrentVersion\Uninstall\OneDriveSetup.exe"
@@ -527,7 +524,8 @@ function Uninstall-OneDrive{  #Uninstall Onedrive completely    #~~# WORKS IN WI
     }
 }
 
-function Disable-Copilot{ # Remove the Windows Copilot package using DISM     #~~# WORKS IN WIN11 #~~#
+function Disable-Copilot{
+    # Remove the Windows Copilot package using DISM
     Write-Host "Removing Windows Copilot package..."
     try {
         # Remove the Copilot package for the current user (or all users if applicable)
@@ -569,59 +567,6 @@ function Disable-Copilot{ # Remove the Windows Copilot package using DISM     #~
     Write-Host "Windows Copilot has been disabled. A system reboot might be required for all changes to take effect."
 }
 
-function Disable-AutoStart {
-    # List of common startup applications to disable
-    $appsToDisable = @(
-        "OneDrive",
-        "Microsoft Teams",
-        "Skype",
-        "Spotify",
-        "Zoom",
-        "Adobe Creative Cloud",
-        "Google Drive",
-        "Dropbox",
-        "Battle.net",
-        "iTunesHelper",
-        "Cortana",
-        "Java Update Scheduler",
-        "Adobe Updater",
-        "Logitech Updater",
-        "Widgets",
-        "Teams Machine-Wide Installer",
-        "Adobe Acrobat Update Service",
-        "VLC Update",
-        "GoogleChromeUpdate",
-        "BraveBrowserUpdate"
-    )
-
-    # Get all startup applications
-    $startupApps = Get-CimInstance Win32_StartupCommand
-
-    # Loop through the list and disable if found
-    foreach ($app in $appsToDisable) {
-        $match = $startupApps | Where-Object { $_.Name -like "*$app*" -or $_.Command -like "*$app*" }
-        
-        if ($match) {
-            Write-Output "Disabling startup for: $($match.Name)"
-            # Disable startup item in registry (if applicable)
-            $regPath = "HKCU:\Software\Microsoft\Windows\CurrentVersion\Run"
-            if (Test-Path $regPath) {
-                Remove-ItemProperty -Path $regPath -Name $match.Name -ErrorAction SilentlyContinue
-            }
-            
-            # Disable using Task Manager (if applicable)
-            $task = Get-ScheduledTask | Where-Object { $_.TaskName -like "*$app*" }
-            if ($task) {
-                Disable-ScheduledTask -TaskName $task.TaskName
-            }
-        }
-        else {
-            Write-Output "$app not found in startup."
-        }
-    }
-
-    Write-Output "Startup optimization complete."
-}
 #
 # NOT WORKING IN WIN11
 #
