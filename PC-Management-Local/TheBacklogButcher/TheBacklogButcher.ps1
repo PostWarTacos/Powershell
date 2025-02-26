@@ -13,14 +13,15 @@ $cutoffDate = ( Get-Date ).AddMonths( -6 )
 
 # STEAM VARS
 $steamGames = [System.Collections.ArrayList]::new()
-$steamLibraryPaths = [System.Collections.ArrayList]::new()
+$steamLibPaths = [System.Collections.ArrayList]::new()
+$manifestFiles = [System.Collections.ArrayList]::new()
 
 # EPIC VARS
 $epicGames = [System.Collections.ArrayList]::new()
-$epicLibraryPaths = [System.Collections.ArrayList]::new()
+$epicLibPaths = [System.Collections.ArrayList]::new()
 
 <#
-    To add another line to steamLibraryPath...
+    To add another line to steamLibPath...
     Each directory must be in quotes ""
     If that line is to be followed by another line, add a <comma, space, backtick> to the end of that line.
     example:
@@ -62,14 +63,18 @@ function Filter-SteamGames { # Function to filter and uninstall Steam games.
     
         if (Test-Path $steamConfigPath) {
             # Read the file and extract paths using regex
-            $steamLibraryData = Get-Content $steamConfigPath -Raw
-            $steamLibraryPaths = $steamLibraryData -match '"\d+"\s*"(.+?)"' | ForEach-Object { $matches[1] }
+            $steamLibData = Get-Content $steamConfigPath -Raw
+            $steamLibPaths = [regex]::Matches($steamLibData, '"path"\s*"(.+?)"') | ForEach-Object { $_.Groups[1].Value }
+            $steamLibPaths[0] =  $steamLibPaths[0] -replace "\\\\", "\"
+            $steamLibPaths[1] =  $steamLibPaths[1] -replace "\\\\", "\" 
         }
     }
     
     # Retrieve all manifest files for installed games
     Write-Host "Finding manifests for Steam games..."
-    $manifestFiles = Get-ChildItem -Path $steamLibraryPath -Filter "appmanifest_*.acf"
+    foreach ( $libPath in $steamLibPaths ){
+        $manifestFiles.Add($(Get-ChildItem -Path "$libPath\steamapps" -Filter "appmanifest_*.acf"))
+    }
     
     Write-Host "Processing Steam games..."
     foreach ( $file in $manifestFiles ) {
