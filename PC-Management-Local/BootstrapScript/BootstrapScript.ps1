@@ -241,6 +241,8 @@ Add "End Task" to right click
 Set IPv4 as preferred
 Debloat Edge
 Detailed BSoD
+UI response time tweaks
+Remove Windows Bloatware
 Disable PowerShell 7 Telemetry
 Disable Teredo tunneling protocol
 Disable hibernation
@@ -254,12 +256,18 @@ Disable and remove Recall app/services
 <# IN DEV SETTING CHANGES
 Disable Telemetry
 Set certain services to manual
-Add shortcuts to taskbar and start menu
 Separate ADM account
 Reset background based on photo saved to Git
 Zoom and font size
 Remove popups on lockscreen
 Modify lockscreen widget
+
+
+
+
+Navigate to "Personalization > Lock screen" and disable options
+related to "Get fun facts, tips, and more on your lock screen.". 
+
 #>
 
 function Set-PowerShellProfile { # Load PowerShell Profile
@@ -303,7 +311,7 @@ function Set-MilDateTimeFormat{ # Mil Date and Time Format  #~~# WORKS IN WIN11 
     Set-ItemProperty -Path "HKCU:\Control Panel\International" -Name "sLongTime" -Value "HH:mm:ss"
 }
 
-function Disable-Recall { # Disable Recall App/Services (For Windows 11 with Recall)    #~~# APPEARS TO WORK IN WIN11. NEED VERIFY SCRIPT. #~~#
+function Disable-Recall { # Remove Recall and disable its ability to reinstall #~~# WORKS IN WIN11 #~~#
     Write-Output "Disabling Recall."
     
     # Step 1: Disable Recall via Registry Settings
@@ -426,7 +434,7 @@ function Set-PreferIPv4 { # Set IPv4 as preferred over IPv6   #~~# WORKS IN WIN1
     Set-ItemProperty -Path "HKLM:\SYSTEM\CurrentControlSet\Services\Tcpip6\Parameters" -Name "DisabledComponents" -Value 32 -Type DWord
 }
 
-function Uninstall-OneDrive{
+function Uninstall-OneDrive{ # Remove OneDrive and disable it's ability to reinstall    #~~# WORKS IN WIN11 #~~#
     $OneDrivePath = $($env:OneDrive)
     Write-Host "Removing OneDrive"
     $regPath = "HKCU:\Software\Microsoft\Windows\CurrentVersion\Uninstall\OneDriveSetup.exe"
@@ -524,8 +532,7 @@ function Uninstall-OneDrive{
     }
 }
 
-function Disable-Copilot{
-    # Remove the Windows Copilot package using DISM
+function Disable-Copilot{ # Remove Copilot and disable it's ability to reinstall  #~~# WORKS IN WIN11 #~~#
     Write-Host "Removing Windows Copilot package..."
     try {
         # Remove the Copilot package for the current user (or all users if applicable)
@@ -566,6 +573,74 @@ function Disable-Copilot{
 
     Write-Host "Windows Copilot has been disabled. A system reboot might be required for all changes to take effect."
 }
+
+Function Remove-Bloatware { # Remove Windows bloatware apps
+    $bloatwareApps = @(
+        "Microsoft.3DBuilder",
+        "Microsoft.BingNews",
+        "Microsoft.GetHelp",
+        "Microsoft.Getstarted",
+        "Microsoft.Microsoft3DViewer",
+        "Microsoft.MicrosoftOfficeHub",
+        "Microsoft.MicrosoftSolitaireCollection",
+        "Microsoft.MicrosoftStickyNotes",
+        "Microsoft.MixedReality.Portal",
+        "Microsoft.NetworkSpeedTest",
+        "Microsoft.Office.OneNote",
+        "Microsoft.People",
+        "Microsoft.SkypeApp",
+        "Microsoft.Wallet",
+        "Microsoft.WindowsAlarms",
+        "Microsoft.WindowsCamera",
+        "microsoft.windowscommunicationsapps",
+        "Microsoft.WindowsFeedbackHub",
+        "Microsoft.WindowsMaps",
+        "Microsoft.WindowsSoundRecorder",
+        "Microsoft.YourPhone",
+        "Microsoft.ZuneMusic",
+        "Microsoft.ZuneVideo"
+    )
+
+    ForEach ($app in $bloatwareApps) {
+        Get-AppxPackage -Name $app -AllUsers | Remove-AppxPackage -ErrorAction SilentlyContinue
+        Get-AppxProvisionedPackage -Online | Where-Object DisplayName -Like "$app" | Remove-AppxProvisionedPackage -Online -ErrorAction SilentlyContinue
+    }
+
+    Write-Output "Bloatware Removal Complete!"
+}
+
+function Set-UIResponseTweaks { # Set mouse hover and delay to be MUCH shorter than normal
+    $tweaks = @{
+        "HKCU:\Control Panel\Mouse" = @{"MouseHoverTime" = 100}
+        "HKCU:\Control Panel\Desktop" = @{"MenuShowDelay" = 100}
+    }
+    <# 
+    "HKCU:\Control Panel\Desktop" = @{"MenuShowDelay" = 10}
+    - **Default Value:** `400` (milliseconds)
+    - **New Value:** `100` (milliseconds)
+    - **Effect:** Reduces the delay before menus (such as Start Menu, right-click context menus, and dropdown menus) open after hovering or clicking.  
+    
+    "HKCU:\Control Panel\Mouse" = @{"MouseHoverTime" = 10}
+    - **Default Value:** `400` (milliseconds)
+    - **New Value:** `100` (milliseconds)
+    - **Effect:** Reduces the delay before tooltips and hover effects appear when you move the mouse over items.  
+    #>
+
+    foreach ( $key in $tweaks.Keys ){
+        if ( -not ( Test-Path $key )){
+            New-Item -Path $key -force | Out-Null
+        }
+        foreach ( $value in $tweaks[$key].Keys){
+            Set-ItemProperty -Path $key -name $value -Value $tweaks[$key][$value]
+        }
+    }
+
+}
+
+  
+
+
+
 
 #
 # NOT WORKING IN WIN11
