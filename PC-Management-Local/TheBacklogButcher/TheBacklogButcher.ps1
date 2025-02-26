@@ -52,6 +52,8 @@ function Invoke-UninstallGame { # Function to invoke an uninstall command.
 
 # Steam Games
 function Filter-SteamGames { # Function to filter and uninstall Steam games.  
+    Write-Host "Discovering Steam Libraries."
+    
     # Should identify Steam libraries automatically, IF they are connected to steam client.
     $steamPath = Get-ItemPropertyValue -Path "HKLM:\SOFTWARE\WOW6432Node\Valve\Steam" -Name "InstallPath" -ErrorAction SilentlyContinue
     
@@ -64,11 +66,12 @@ function Filter-SteamGames { # Function to filter and uninstall Steam games.
             $steamLibraryPaths = $steamLibraryData -match '"\d+"\s*"(.+?)"' | ForEach-Object { $matches[1] }
         }
     }
-    Write-Host "Processing Steam games..."
-
+    
     # Retrieve all manifest files for installed games
+    Write-Host "Finding manifests for Steam games..."
     $manifestFiles = Get-ChildItem -Path $steamLibraryPath -Filter "appmanifest_*.acf"
     
+    Write-Host "Processing Steam games..."
     foreach ( $file in $manifestFiles ) {
         # Read the entire file content
         $content = Get-Content $file.FullName -Raw
