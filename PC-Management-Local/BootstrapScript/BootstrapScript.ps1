@@ -249,9 +249,9 @@ Disable Teredo tunneling protocol
 Disable hibernation
 Disable storage sense
 Disable consumer features    (Not working)
-Disable and remove OneDrive
-Disable and remove Copilot
-Disable and remove Recall app/services
+Uninstall and Disable OneDrive
+Uninstall and Disable Copilot
+Uninstall and Disable Recall
 #>
 
 <# IN DEV SETTING CHANGES
@@ -265,7 +265,7 @@ function Set-PowerShellProfile { # Load PowerShell Profile
 
 # Function to open Mouse Pointer Settings UI and set the color & size
 function Set-MousePointer {   #~~# WORKS IN WIN11 #~~#
-    Write-Output "Setting mouse pointer color and size."
+    Write-Host "Starting Set-MousePointer" -ForegroundColor Yellow
     Start-Process "ms-settings:easeofaccess-mousepointer"  # Open Ease of Access Mouse Settings
     Start-Sleep -Seconds 2  # Wait for settings window to open
 
@@ -287,78 +287,44 @@ function Set-MousePointer {   #~~# WORKS IN WIN11 #~~#
 }
 
 function Set-MilDateTimeFormat{ # Mil Date and Time Format  #~~# WORKS IN WIN11 #~~#
+    Write-Host "Starting Set-MilDateTimeFormat" -ForegroundColor Yellow
     # Set Short Date Format
-    Write-Output "Setting short date format to dd-MMM-yy."
     Set-ItemProperty -Path "HKCU:\Control Panel\International" -Name "sShortDate" -Value "dd-MMM-yy"
     
     # Set Short Time Format - 24 clock
-    Write-Output "Setting short time to 24 hour clock."
     Set-ItemProperty -Path "HKCU:\Control Panel\International" -Name "sShortTime" -Value "HH:mm"
     
     # Set Long Time Format - 24 clock with seconds    
-    Write-Output "Setting long time to 24 hour clock with seconds."
     Set-ItemProperty -Path "HKCU:\Control Panel\International" -Name "sLongTime" -Value "HH:mm:ss"
 }
 
-function Disable-Recall { # Disable Recall App/Services (For Windows 11 with Recall)    #~~# APPEARS TO WORK IN WIN11. NEED VERIFY SCRIPT. #~~#
-    Write-Output "Disabling Recall."
-    
-    # Step 1: Disable Recall via Registry Settings
-    $userRegPath = "HKCU:\Software\Policies\Microsoft\Windows\WindowsAI"
-    $systemRegPath = "HKLM:\SOFTWARE\Policies\Microsoft\Windows\WindowsAI"
-
-    New-Item -Path $userRegPath -Force | Out-Null
-    Set-ItemProperty -Path $userRegPath -Name "DisableAIDataAnalysis" -Value 1 -Force
-
-    New-Item -Path $systemRegPath -Force | Out-Null
-    Set-ItemProperty -Path $systemRegPath -Name "DisableAIDataAnalysis" -Value 1 -Force
-
-    Write-Output "Recall has been disabled via registry settings."
-
-    # Step 2: Stop and Disable Recall Services
-    $recallServices = @( "RecallSvc", "RecallIndexerSvc" )
-
-    foreach ( $service in $recallServices ) {
-        if (Get-Service -Name $service -ErrorAction SilentlyContinue) {
-            Stop-Service -Name $service -Force -ErrorAction SilentlyContinue
-            Set-Service -Name $service -StartupType Disabled -ErrorAction SilentlyContinue
-            Write-Output "Service '$service' has been stopped and disabled."
-        } else {
-            Write-Output "Service '$service' not found."
-        }
-    }
-
-    # Step 3: Use DISM to Remove Recall Feature
-    Start-Process -NoNewWindow -Wait -FilePath "cmd.exe" -ArgumentList "/c DISM /Online /Disable-Feature /FeatureName:Recall /Quiet /NoRestart"
-}
-
 function Enable-NumlockBoot { # Enable NumLock on Boot  #~~# WORKS IN WIN11 #~~#
-    Write-Output "Enabling Numlock on boot."
+    Write-Host "Starting Enable-NumlockBoot" -ForegroundColor Yellow
     Set-ItemProperty -Path 'HKCU:\Control Panel\Keyboard' -Name "InitialKeyboardIndicators" -Value "2"
 }
 
 function Disable-Teredo { # Disable Teredo Tunneling protocol  #~~# WORKS IN WIN11 #~~#
-    Write-Output "Disabling Teredo Tunneling protocol."
+    Write-Host "Starting Disable-Teredo" -ForegroundColor Yellow
     netsh interface teredo set state disabled
 }
 
 function Show-FileExtensions { # Show File Extensions   #~~# WORKS IN WIN11 #~~#
-    Write-Output "Enabling file extensions visibility..."
+    Write-Host "Starting Show-FileExtensions" -ForegroundColor Yellow
     Set-ItemProperty -Path "HKCU:\Software\Microsoft\Windows\CurrentVersion\Explorer\Advanced" -Name "HideFileExt" -Value 0
 }
 
 function Disable-Hibernation { # Disable Hibernation  #~~# WORKS IN WIN11 #~~#
-    Write-Output "Disabling hibernation..."
+    Write-Host "Starting Disable-Hibernation" -ForegroundColor Yellow
     powercfg.exe /hibernate off
 }
 
 function Disable-StorageSense { # Disable Storage Sense  #~~# WORKS IN WIN11 #~~#
-    Write-Output "Disabling Storage Sense..."
+    Write-Host "Starting Disable-StorageSense" -ForegroundColor Yellow
     Set-ItemProperty -Path "HKCU:\SOFTWARE\Microsoft\Windows\CurrentVersion\StorageSense\Parameters\StoragePolicy" -Name "01" -Value 0 -Type Dword -Force
 }
 
 function Add-TaskbarEndTask { # Add "End Task" to Right-Click Menu   #~~# WORKS IN WIN11 #~~#
-    Write-Output "Adding ""End Task"" to Taskbar right-click menu"
+    Write-Host "Starting Add-TaskbarEndTask" -ForegroundColor Yellow
     $path = "HKCU:\Software\Microsoft\Windows\CurrentVersion\Explorer\Advanced\TaskbarDeveloperSettings"
     $name = "TaskbarEndTask"
     $value = 1
@@ -373,7 +339,7 @@ function Add-TaskbarEndTask { # Add "End Task" to Right-Click Menu   #~~# WORKS 
 }
 
 function Set-ServicesManual { # Set Common Services to Manual
-    Write-Output "Setting certain services to manual startup."
+    Write-Host "Starting Set-ServicesManual" -ForegroundColor Yellow
     $services = @("AJRouter", `
         "ALG", `
         "AppIDSvc", `
@@ -658,7 +624,81 @@ function Set-ServicesManual { # Set Common Services to Manual
     }        
 }
 
+function Disable-Autoruns { # Disable autoruns for common apps
+    Write-Host "Starting Disable-Autoruns" -ForegroundColor Yellow
+    # List of startup applications to disable
+    $appsToDisable = @(
+        "OneDrive",
+        "Microsoft Teams",
+        "Skype",
+        "Spotify",
+        "Zoom",
+        "Adobe Creative Cloud",
+        "Dropbox",
+        "EpicGamesLauncher",
+        "Battle.net",
+        "iTunesHelper",
+        "Cortana",
+        "Java Update Scheduler",
+        "HP Smart",
+        "Epson Event Manager",
+        "Adobe Updater",
+        "Apple Software Update",
+        "Logitech Updater",
+        "MicrosoftEdgeUpdate",
+        "Widgets",
+        "Teams Machine-Wide Installer",
+        "Slack",
+        "Webex",
+        "Adobe Acrobat Update Service",
+        "VLC Update",
+        "GoogleChromeUpdate",
+        "MozillaMaintenance",
+        "BraveBrowserUpdate",
+        "QuickTime",
+        "ApplePush",
+        "Realtek HD Audio Manager",
+        "Intel Driver & Support Assistant",
+        "Dell SupportAssist",
+        "HP Support Assistant",
+        "Lenovo Vantage",
+        "AnyDesk",
+        "TeamViewer"
+    )
+
+    # Get all startup applications
+    $startupApps = Get-CimInstance Win32_StartupCommand
+
+    # Loop through the list and disable if found
+    foreach ($app in $appsToDisable) {
+        $match = $startupApps | Where-Object { $_.Name -like "*$app*" -or $_.Command -like "*$app*" }
+        
+        if ($match) {
+            Write-Output "Disabling startup for: $($match.Name)"
+            
+            # Disable startup item in registry
+            $regPath = "HKCU:\Software\Microsoft\Windows\CurrentVersion\Run"
+            if (Test-Path $regPath) {
+                Remove-ItemProperty -Path $regPath -Name $match.Name -ErrorAction SilentlyContinue
+            }
+            
+            # Disable using Task Manager (if applicable)
+            $task = Get-ScheduledTask | Where-Object { $_.TaskName -like "*$app*" }
+            if ($task) {
+                Disable-ScheduledTask -TaskName $task.TaskName
+            }
+        }
+        else {
+            Write-Output "$app not found in startup."
+        }
+    }
+
+    Write-Output "Startup optimization complete."
+
+}
+
 function Set-DebloatEdge { # Debloat Edge   #~~# WORKS IN WIN11 #~~#
+    Write-Host "Starting Debloat-Edge" -ForegroundColor Yellow
     $regChanges = @(
         @{Path="HKLM:\SOFTWARE\Policies\Microsoft\EdgeUpdate"; Name="CreateDesktopShortcutDefault"; Type="DWord"; Value=0}
         @{Path="HKLM:\SOFTWARE\Policies\Microsoft\Edge"; Name="EdgeEnhanceImagesEnabled"; Type="DWord"; Value=0}
@@ -689,16 +729,17 @@ function Set-DebloatEdge { # Debloat Edge   #~~# WORKS IN WIN11 #~~#
 }
 
 function Enable-DetailedBSoD { # Enable Detailed BSoD  #~~# WORKS IN WIN11 #~~#
-    Write-Output "Enabling detailed BSoD..."
+    Write-Host "Starting Enable-DetailedBSoD" -ForegroundColor Yellow
     Set-ItemProperty -Path "HKLM:\SYSTEM\CurrentControlSet\Control\CrashControl" -Name "DisplayParameters" -Value 1 -Force
 }
 
 function Set-PreferIPv4 { # Set IPv4 as preferred over IPv6   #~~# WORKS IN WIN11 #~~#
-    Write-Output "Setting IPv4 as preferred over IPv6. This does NOT disable IPv6"
+    Write-Host "Starting Set-PreferIPv4" -ForegroundColor Yellow
     Set-ItemProperty -Path "HKLM:\SYSTEM\CurrentControlSet\Services\Tcpip6\Parameters" -Name "DisabledComponents" -Value 32 -Type DWord
 }
 
 function Uninstall-OneDrive{ # Remove OneDrive and disable it's ability to reinstall    #~~# WORKS IN WIN11 #~~#
+    Write-Host "Starting Uninstall-OneDrive" -ForegroundColor Yellow
     $OneDrivePath = $($env:OneDrive)
     Write-Host "Removing OneDrive"
     $regPath = "HKCU:\Software\Microsoft\Windows\CurrentVersion\Uninstall\OneDriveSetup.exe"
@@ -796,8 +837,8 @@ function Uninstall-OneDrive{ # Remove OneDrive and disable it's ability to reins
     }
 }
 
-function Disable-Copilot{ # Remove Copilot and disable it's ability to reinstall  #~~# WORKS IN WIN11 #~~#
-    Write-Host "Removing Windows Copilot package..."
+function Uninstall-Copilot{ # Remove Copilot and disable it's ability to reinstall  #~~# WORKS IN WIN11 #~~#
+    Write-Host "Starting Uninstall-Copilot" -ForegroundColor Yellow
     try {
         # Remove the Copilot package for the current user (or all users if applicable)
         Write-Host "Searching for the Windows Copilot package..."
@@ -838,12 +879,46 @@ function Disable-Copilot{ # Remove Copilot and disable it's ability to reinstall
     Write-Host "Windows Copilot has been disabled. A system reboot might be required for all changes to take effect."
 }
 
+function Uninstall-Recall { # Uninstall Recall and remove it's ability to reinstall    #~~# APPEARS TO WORK IN WIN11. NEED VERIFY SCRIPT. #~~#
+    Write-Host "Starting Disable-Recall" -ForegroundColor Yellow
+    
+    # Step 1: Disable Recall via Registry Settings
+    $userRegPath = "HKCU:\Software\Policies\Microsoft\Windows\WindowsAI"
+    $systemRegPath = "HKLM:\SOFTWARE\Policies\Microsoft\Windows\WindowsAI"
+
+    New-Item -Path $userRegPath -Force | Out-Null
+    Set-ItemProperty -Path $userRegPath -Name "DisableAIDataAnalysis" -Value 1 -Force
+
+    New-Item -Path $systemRegPath -Force | Out-Null
+    Set-ItemProperty -Path $systemRegPath -Name "DisableAIDataAnalysis" -Value 1 -Force
+
+    Write-Output "Recall has been disabled via registry settings."
+
+    # Step 2: Stop and Disable Recall Services
+    $recallServices = @( "RecallSvc", "RecallIndexerSvc" )
+
+    foreach ( $service in $recallServices ) {
+        if (Get-Service -Name $service -ErrorAction SilentlyContinue) {
+            Stop-Service -Name $service -Force -ErrorAction SilentlyContinue
+            Set-Service -Name $service -StartupType Disabled -ErrorAction SilentlyContinue
+            Write-Output "Service '$service' has been stopped and disabled."
+        } else {
+            Write-Output "Service '$service' not found."
+        }
+    }
+
+    # Step 3: Use DISM to Remove Recall Feature
+    Start-Process -NoNewWindow -Wait -FilePath "cmd.exe" -ArgumentList "/c DISM /Online /Disable-Feature /FeatureName:Recall /Quiet /NoRestart"
+}
+
 function Disable-MSLockscreenContent{ # Removes MS lockscreen ads (not the widgets)
+    Write-Host "Starting Disable-MSLockscreenContent" -ForegroundColor Yellow
     Set-ItemProperty -Path HKCU:\Software\Microsoft\Windows\CurrentVersion\ContentDeliveryManager -Name SubscribedContent-338387Enabled `
         -Value 0 -Force
 }
 
 Function Remove-Bloatware { # Remove Windows bloatware apps
+    Write-Host "Starting Remove-Bloatware" -ForegroundColor Yellow
     # Remove "3D Objects" from This PC
     Remove-Item -Path "HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\MyComputer\NameSpace\{0DB7E03F-FC29-4DC6-9020-FF41B59E513A}" -Recurse -ErrorAction SilentlyContinue
 
@@ -882,6 +957,7 @@ Function Remove-Bloatware { # Remove Windows bloatware apps
 }
 
 function Set-UIResponseTweaks { # Set mouse hover and delay to be MUCH shorter than normal
+    Write-Host "Starting Set-UIResponseTweaks" -ForegroundColor Yellow
     $tweaks = @{
         "HKCU:\Control Panel\Mouse" = @{"MouseHoverTime" = 100}
         "HKCU:\Control Panel\Desktop" = @{"MenuShowDelay" = 100}
@@ -910,6 +986,7 @@ function Set-UIResponseTweaks { # Set mouse hover and delay to be MUCH shorter t
 }
 
 function Disable-Telemetry{ # Disables all telemetry from various sources
+    Write-Host "Starting Disable-Telemetry" -ForegroundColor Yellow
     # Fix "Managed by your organization" in Edge
     If (Test-Path "HKLM:\SOFTWARE\Policies\Microsoft\Edge") {
         Remove-Item -Path "HKLM:\SOFTWARE\Policies\Microsoft\Edge" -Recurse -ErrorAction SilentlyContinue
@@ -982,11 +1059,13 @@ function Disable-Telemetry{ # Disables all telemetry from various sources
 }
 
 function Optimize-SvcHost{ # Group svchost.exe processes for better performance
+    Write-Host "Starting Optimize-SvcHost" -ForegroundColor Yellow
     $ram = (Get-CimInstance -ClassName Win32_PhysicalMemory | Measure-Object -Property Capacity -Sum).Sum / 1kb
     Set-ItemProperty -Path "HKLM:\SYSTEM\CurrentControlSet\Control" -Name "SvcHostSplitThresholdInKB" -Type DWord -Value $ram -Force
 }
 
 function Enable-LegacyBoot{ # Enable legacy boot menu, such as F8 at boot
+    Write-Host "Starting Enable-LegacyBoot" -ForegroundColor Yellow
     bcdedit /set `{current`} bootmenupolicy Legacy | Out-Null
 }
 
