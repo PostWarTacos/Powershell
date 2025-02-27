@@ -1,10 +1,8 @@
 <# Matt's Apps to Install at Home
-7Zip.7Zip
+7zip.7zip
 Brave.Brave
-Discord.Discord
 EpicGames.EpicGamesLauncher
-Gimp.Gimp
-GOG.Galaxy
+GIMP.GIMP
 Insecure.Nmap
 Mozilla.Thunderbird
 Oracle.VirtualBox
@@ -28,7 +26,7 @@ Git.Git
 JanDeDobbeleer.OhMyPosh
 Microsoft.WindowsTerminal
 Notion.Notion
-Spotify.Spotify
+Spotify.Spotify         (NEEDS TO RUNAS USER NOT ADM)
 Microsoft.Sysinternals
 VSCodium.VSCodium
 WinFetch    (separate install)
@@ -41,6 +39,8 @@ Devolutions.RemoteDesktopManager    (work only)
 Ubisoft.Connect
 ElectronicArts.EADesktop
 WiresharkFoundation.Wireshark
+Discord.Discord
+GOG.Galaxy
 Zoom.Zoom
 Microsoft.Teams
 ms office 2021      (https://msgang.com/how-to-download-and-install-office-2021-on-windows-10/)
@@ -61,7 +61,9 @@ function Install { # Universal winget function
 }
 
 function Install-Winfetch { # Download and install WinFetch. Not available in winget
-    Install-Script winfetch
+    winget install --id=Microsoft.NuGet  -e
+    Install-Script winfetch -Force
+
 }
 
 function Install-DoDCerts { # Download and install DoD Certs.
@@ -153,8 +155,8 @@ function Install-DoDCerts { # Download and install DoD Certs.
     #   Remove-Item -Path Cert:\LocalMachine\ROOT\<CertificateThumbprint>
     # Make sure to verify certificate details before removal.
 
-    Write-Output "Certificate installation complete."
-    Write-Output "Reminder: If you need to clear installed certificates manually, follow your manual clearance guide (NOTE2)."
+    Write-Host "Certificate installation complete." -ForegroundColor Yellow
+    Write-Host "Reminder: If you need to clear installed certificates manually, follow your manual clearance guide (NOTE2)." -ForegroundColor Yellow
 
 }
 
@@ -187,7 +189,7 @@ function Install-Overwolf { # Download and install Overwolf. Not available in wi
     Invoke-WebRequest -Uri $downloadURL -OutFile $installerPath
     
     If (Test-Path $installerPath){ # Verify downloaded
-        Start-Process -FilePath $installerPath -ArgumentList "/s" -Wait
+        Start-Process -FilePath $installerPath -ArgumentList "/silent" -Wait
     }
 
     $overwolf = reg query "HKEY_LOCAL_MACHINE\SOFTWARE\WOW6432Node\Microsoft\Windows\CurrentVersion\Uninstall" /s | findstr /I "Overwolf"
@@ -620,8 +622,8 @@ function Set-ServicesManual { # Set Common Services to Manual
         "XboxGipSvc", `
         "XboxNetApiSvc")
     foreach ( $service in $services ) {
-        Set-Service -Name $service -StartupType Manual
-    }        
+        Set-Service -Name $service -StartupType Manual -ErrorAction SilentlyContinue
+    }
 }
 
 function Disable-Autoruns { # Disable autoruns for common apps
@@ -959,8 +961,8 @@ Function Remove-Bloatware { # Remove Windows bloatware apps
 function Set-UIResponseTweaks { # Set mouse hover and delay to be MUCH shorter than normal
     Write-Host "Starting Set-UIResponseTweaks" -ForegroundColor Yellow
     $tweaks = @{
-        "HKCU:\Control Panel\Mouse" = @{"MouseHoverTime" = 100}
-        "HKCU:\Control Panel\Desktop" = @{"MenuShowDelay" = 100}
+        "HKCU:\Control Panel\Mouse" = @{"MouseHoverTime" = 10}
+        "HKCU:\Control Panel\Desktop" = @{"MenuShowDelay" = 10}
     }
     <# 
     "HKCU:\Control Panel\Desktop" = @{"MenuShowDelay" = 10}
@@ -1024,12 +1026,18 @@ function Disable-Telemetry{ # Disables all telemetry from various sources
         "telemetry.microsoft.com",
         "oca.telemetry.microsoft.com"
     )
+    
     $hostsFile = "$env:SystemRoot\System32\drivers\etc\hosts"
-    foreach ($host in $telemetryHosts) {
-        if (!(Select-String -Path $hostsFile -Pattern $host -Quiet)) {
-            Add-Content -Path $hostsFile -Value "`n0.0.0.0 $host"
+    $plannedAdditions = [System.Collections.ArrayList]::new()
+    
+    foreach ($telemetryHost in $telemetryHosts) {
+        # Ensure the entry doesn't already exist before adding it
+        if (!(Select-String -Path $hostsFile -Pattern "\s+$telemetryHost$" -Quiet)) {
+            $plannedAdditions.Add("`n0.0.0.0 $telemetryHost") | Out-Null
         }
     }
+
+    Add-Content -Path $hostsFile -Value $plannedAdditions
 
     # Disable Cortana and search telemetry
     $cortanaKeys = @(
