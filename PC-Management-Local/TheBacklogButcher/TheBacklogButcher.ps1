@@ -118,11 +118,13 @@ function Filter-SteamGames { # Function to filter and uninstall Steam games.
 }
 
 # Epic Games
-# using Fortnite logs, I can see the exact time the game launcher was opened
-# C:\Users\wurtz\AppData\Local\FortniteGame\Saved\Logs
+<#
+Grab the name of the game from the manifest  # C:\ProgramData\Epic\EpicGamesLauncher\Data\Manifests
+Find the game in AppData\Local  # C:\Users\wurtz\AppData\Local\FortniteGame\Saved\Logs
+Find the log file
+Reference the last date played
+#>
 
-# using the Epic manifests i can see everything but the start time. 
-# C:\ProgramData\Epic\EpicGamesLauncher\Data\Manifests
 
 function Filter-EpicGames { # Function to filter and uninstall Epic games
     Write-Host "Processing Epic games..."
