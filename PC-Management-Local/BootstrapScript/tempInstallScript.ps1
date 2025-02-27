@@ -34,7 +34,6 @@ foreach ( $app in $install ){
 
 
 <#
-GIMP.GIMP
-7zip.7zip
  Spotify.Spotify
 #>
+
