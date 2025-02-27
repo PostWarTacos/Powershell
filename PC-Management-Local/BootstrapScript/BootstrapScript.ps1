@@ -241,9 +241,8 @@ Add "End Task" to right click
 Set IPv4 as preferred
 Debloat Edge
 Detailed BSoD
-UI response time tweaks
-Remove Windows Bloatware
-Disable PowerShell 7 Telemetry
+Disable PowerShell 7 telemetry
+Disable MS lockscreen ads
 Disable Teredo tunneling protocol
 Disable hibernation
 Disable storage sense
@@ -256,18 +255,12 @@ Disable and remove Recall app/services
 <# IN DEV SETTING CHANGES
 Disable Telemetry
 Set certain services to manual
+Add shortcuts to taskbar and start menu
 Separate ADM account
 Reset background based on photo saved to Git
 Zoom and font size
 Remove popups on lockscreen
 Modify lockscreen widget
-
-
-
-
-Navigate to "Personalization > Lock screen" and disable options
-related to "Get fun facts, tips, and more on your lock screen.". 
-
 #>
 
 function Set-PowerShellProfile { # Load PowerShell Profile
@@ -311,7 +304,7 @@ function Set-MilDateTimeFormat{ # Mil Date and Time Format  #~~# WORKS IN WIN11 
     Set-ItemProperty -Path "HKCU:\Control Panel\International" -Name "sLongTime" -Value "HH:mm:ss"
 }
 
-function Disable-Recall { # Remove Recall and disable its ability to reinstall #~~# WORKS IN WIN11 #~~#
+function Disable-Recall { # Disable Recall App/Services (For Windows 11 with Recall)    #~~# APPEARS TO WORK IN WIN11. NEED VERIFY SCRIPT. #~~#
     Write-Output "Disabling Recall."
     
     # Step 1: Disable Recall via Registry Settings
@@ -574,6 +567,10 @@ function Disable-Copilot{ # Remove Copilot and disable it's ability to reinstall
     Write-Host "Windows Copilot has been disabled. A system reboot might be required for all changes to take effect."
 }
 
+function Disable-MSLockscreenContent{
+    # HKEY_CURRENT_USER\Software\Microsoft\Windows\CurrentVersion\ContentDeliveryManager
+        #SubscribedContent-338387Enabled (This disables the stock widget)
+}
 Function Remove-Bloatware { # Remove Windows bloatware apps
     $bloatwareApps = @(
         "Microsoft.3DBuilder",
@@ -636,12 +633,6 @@ function Set-UIResponseTweaks { # Set mouse hover and delay to be MUCH shorter t
     }
 
 }
-
-  
-
-
-
-
 #
 # NOT WORKING IN WIN11
 #
