@@ -1015,4 +1015,3 @@ function Disable-StartMenuRecommendations { # Disable Start Menu Recommendations
     }
 }
 #>
-
