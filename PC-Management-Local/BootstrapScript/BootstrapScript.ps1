@@ -231,6 +231,7 @@ Turn on/off Recommendations in start menu    (Not working)
 Pointer size 3 or 4    (modify to depend on resolution)
 Zoom and font size    (modify to depend on resolution)
 Green cursor
+Mouse response time tweaks
 Short Date (dd-MMM-yy)
 24-hour Short Time
 24-hour Long Time w/seconds
@@ -240,6 +241,7 @@ Show file extensions
 Add "End Task" to right click
 Set IPv4 as preferred
 Debloat Edge
+Remove bloatware
 Detailed BSoD
 Disable PowerShell 7 telemetry
 Disable MS lockscreen ads
@@ -255,12 +257,9 @@ Disable and remove Recall app/services
 <# IN DEV SETTING CHANGES
 Disable Telemetry
 Set certain services to manual
-Add shortcuts to taskbar and start menu
 Separate ADM account
 Reset background based on photo saved to Git
 Zoom and font size
-Remove popups on lockscreen
-Modify lockscreen widget
 #>
 
 function Set-PowerShellProfile { # Load PowerShell Profile
@@ -567,10 +566,11 @@ function Disable-Copilot{ # Remove Copilot and disable it's ability to reinstall
     Write-Host "Windows Copilot has been disabled. A system reboot might be required for all changes to take effect."
 }
 
-function Disable-MSLockscreenContent{
+function Disable-MSLockscreenContent{ # Removes MS lockscreen ads (not the widgets)
     # HKEY_CURRENT_USER\Software\Microsoft\Windows\CurrentVersion\ContentDeliveryManager
         #SubscribedContent-338387Enabled (This disables the stock widget)
 }
+
 Function Remove-Bloatware { # Remove Windows bloatware apps
     $bloatwareApps = @(
         "Microsoft.3DBuilder",
@@ -631,8 +631,10 @@ function Set-UIResponseTweaks { # Set mouse hover and delay to be MUCH shorter t
             Set-ItemProperty -Path $key -name $value -Value $tweaks[$key][$value]
         }
     }
-
+    Write-Output "Mouse responsiveness tweaked! You fast af boiii!"
 }
+
+
 #
 # NOT WORKING IN WIN11
 #
