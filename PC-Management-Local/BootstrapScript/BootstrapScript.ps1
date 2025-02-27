@@ -229,21 +229,20 @@ function Install-RuckZuck { # Download and install RuckZuck. Not available in wi
 <# Matt's Settings
 Turn on/off Recommendations in start menu    (Not working)
 Pointer size 3 or 4    (modify to depend on resolution)
-Zoom and font size    (modify to depend on resolution)
 Green cursor
 Mouse response time tweaks
 Short Date (dd-MMM-yy)
 24-hour Short Time
 24-hour Long Time w/seconds
-PowerShell Profile
 Numlock on boot
 Show file extensions
 Add "End Task" to right click
 Set IPv4 as preferred
+Set certain services to manual
 Debloat Edge
 Remove bloatware
 Detailed BSoD
-Disable PowerShell 7 telemetry
+Disable telemetry
 Disable MS lockscreen ads
 Disable Teredo tunneling protocol
 Disable hibernation
@@ -255,11 +254,8 @@ Disable and remove Recall app/services
 #>
 
 <# IN DEV SETTING CHANGES
-Disable Telemetry
-Set certain services to manual
-Separate ADM account
+PowerShell Profile
 Reset background based on photo saved to Git
-Zoom and font size
 #>
 
 function Set-PowerShellProfile { # Load PowerShell Profile
@@ -375,15 +371,290 @@ function Add-TaskbarEndTask { # Add "End Task" to Right-Click Menu   #~~# WORKS 
     }
 }
 
-function Disable-PowerShell7Telemetry { # Disable PowerShell 7 Telemetry  #~~# WORKS IN WIN11 #~~#
-    Write-Output "Disabling PowerShell 7 Telemetry"
-    [Environment]::SetEnvironmentVariable('POWERSHELL_TELEMETRY_OPTOUT', '1', 'Machine')
-}
-
 function Set-ServicesManual { # Set Common Services to Manual
     Write-Output "Setting certain services to manual startup."
-    # Download TXT file from Github
-    # Read file and loop through to set services to manual
+    $services = @("AJRouter", `
+        "ALG", `
+        "AppIDSvc", `
+        "Appinfo", `
+        "AppMgmt", `
+        "AppReadiness", `
+        "AppVClient", `
+        "AppXSvc", `
+        "AssignedAccessManagerSvc", `
+        "AudioEndpointBuilder", `
+        "AudioSrv", `
+        "autotimesvc", `
+        "AxInstSV", `
+        "BcastDVRUserService_*", `
+        "BDESVC", `
+        "BFE", `
+        "BITS", `
+        "BluetoothUserService_*", `
+        "BrokerInfrastructure", `
+        "Browser", `
+        "BTAGService", `
+        "BthAvctpSvc", `
+        "BthHFSrv", `
+        "bthserv", `
+        "camsvc", `
+        "CaptureService_*", `
+        "cbdhsvc_*", `
+        "CDPSvc", `
+        "CDPUserSvc_*", `
+        "CertPropSvc", `
+        "ClipSVC", `
+        "cloudidsvc", `
+        "COMSysApp", `
+        "ConsentUxUserSvc_*", `
+        "CoreMessagingRegistrar", `
+        "CredentialEnrollmentManagerUserSvc_*", `
+        "CryptSvc", `
+        "CscService", `
+        "DcomLaunch", `
+        "DcpSvc", `
+        "dcsvc", `
+        "defragsvc", `
+        "DeviceAssociationBrokerSvc_*", `
+        "DeviceAssociationService", `
+        "DeviceInstall", `
+        "DevicePickerUserSvc_*", `
+        "DevicesFlowUserSvc_*", `
+        "DevQueryBroker", `
+        "Dhcp", `
+        "diagnosticshub.standardcollector.service", `
+        "diagsvc", `
+        "DiagTrack", `
+        "DialogBlockingService", `
+        "DispBrokerDesktopSvc", `
+        "DisplayEnhancementService", `
+        "DmEnrollmentSvc", `
+        "dmwappushservice", `
+        "Dnscache", `
+        "DoSvc", `
+        "dot3svc", `
+        "DPS", `
+        "DsmSvc", `
+        "DsSvc", `
+        "DusmSvc", `
+        "EapHost", `
+        "edgeupdate", `
+        "edgeupdatem", `
+        "EFS", `
+        "embeddedmode", `
+        "EntAppSvc", `
+        "EventLog", `
+        "EventSystem", `
+        "Fax", `
+        "fdPHost", `
+        "FDResPub", `
+        "fhsvc", `
+        "FontCache", `
+        "FrameServer", `
+        "FrameServerMonitor", `
+        "gpsvc", `
+        "GraphicsPerfSvc", `
+        "hidserv", `
+        "HomeGroupListener", `
+        "HomeGroupProvider", `
+        "HvHost", `
+        "icssvc", `
+        "IEEtwCollectorService", `
+        "IKEEXT", `
+        "InstallService", `
+        "InventorySvc", `
+        "iphlpsvc", `
+        "IpxlatCfgSvc", `
+        "KeyIso", `
+        "KtmRm", `
+        "LanmanServer", `
+        "LanmanWorkstation", `
+        "lfsvc", `
+        "LicenseManager", `
+        "lltdsvc", `
+        "lmhosts", `
+        "LSM", `
+        "LxpSvc", `
+        "MapsBroker", `
+        "McpManagementService", `
+        "MessagingService_*", `
+        "MicrosoftEdgeElevationService", `
+        "MixedRealityOpenXRSvc", `
+        "MpsSvc", `
+        "MSDTC", `
+        "MSiSCSI", `
+        "msiserver", `
+        "MsKeyboardFilter", `
+        "NaturalAuthentication", `
+        "NcaSvc", `
+        "NcbService", `
+        "NcdAutoSetup", `
+        "Netlogon", `
+        "Netman", `
+        "netprofm", `
+        "NetSetupSvc", `
+        "NetTcpPortSharing", `
+        "NgcCtnrSvc", `
+        "NgcSvc", `
+        "NlaSvc", `
+        "NPSMSvc_*", `
+        "nsi", `
+        "OneSyncSvc_*", `
+        "p2pimsvc", `
+        "p2psvc", `
+        "P9RdrService_*", `
+        "PcaSvc", `
+        "PeerDistSvc", `
+        "PenService_*", `
+        "perceptionsimulation", `
+        "PerfHost", `
+        "PhoneSvc", `
+        "PimIndexMaintenanceSvc_*", `
+        "pla", `
+        "PlugPlay", `
+        "PNRPAutoReg", `
+        "PNRPsvc", `
+        "PolicyAgent", `
+        "Power", `
+        "PrintNotify", `
+        "PrintWorkflowUserSvc_*", `
+        "ProfSvc", `
+        "PushToInstall", `
+        "QWAVE", `
+        "RasAuto", `
+        "RasMan", `
+        "RemoteAccess", `
+        "RemoteRegistry", `
+        "RetailDemo", `
+        "RmSvc", `
+        "RpcEptMapper", `
+        "RpcLocator", `
+        "RpcSs", `
+        "SamSs", `
+        "SCardSvr", `
+        "ScDeviceEnum", `
+        "Schedule", `
+        "SCPolicySvc", `
+        "SDRSVC", `
+        "seclogon", `
+        "SecurityHealthService", `
+        "SEMgrSvc", `
+        "SENS", `
+        "Sense", `
+        "SensorDataService", `
+        "SensorService", `
+        "SensrSvc", `
+        "SessionEnv", `
+        "SgrmBroker", `
+        "SharedAccess", `
+        "SharedRealitySvc", `
+        "ShellHWDetection", `
+        "shpamsvc", `
+        "smphost", `
+        "SmsRouter", `
+        "SNMPTRAP", `
+        "spectrum", `
+        "Spooler", `
+        "sppsvc", `
+        "SSDPSRV", `
+        "ssh-agent", `
+        "SstpSvc", `
+        "StateRepository", `
+        "StiSvc", `
+        "StorSvc", `
+        "svsvc", `
+        "swprv", `
+        "SysMain", `
+        "SystemEventsBroker", `
+        "TabletInputService", `
+        "TapiSrv", `
+        "TermService", `
+        "TextInputManagementService", `
+        "Themes", `
+        "TieringEngineService", `
+        "tiledatamodelsvc", `
+        "TimeBroker", `
+        "TimeBrokerSvc", `
+        "TokenBroker", `
+        "TrkWks", `
+        "TroubleshootingSvc", `
+        "TrustedInstaller", `
+        "tzautoupdate", `
+        "UdkUserSvc_*", `
+        "UevAgentService", `
+        "uhssvc", `
+        "UI0Detect", `
+        "UmRdpService", `
+        "UnistoreSvc_*", `
+        "upnphost", `
+        "UserDataSvc_*", `
+        "UserManager", `
+        "UsoSvc", `
+        "VacSvc", `
+        "VaultSvc", `
+        "vds", `
+        "VGAuthService", `
+        "vm3dservice", `
+        "vmicguestinterface", `
+        "vmicheartbeat", `
+        "vmickvpexchange", `
+        "vmicrdv", `
+        "vmicshutdown", `
+        "vmictimesync", `
+        "vmicvmsession", `
+        "vmicvss", `
+        "VMTools", `
+        "vmvss", `
+        "VSS", `
+        "W32Time", `
+        "WaaSMedicSvc", `
+        "WalletService", `
+        "WarpJITSvc", `
+        "wbengine", `
+        "WbioSrvc", `
+        "Wcmsvc", `
+        "wcncsvc", `
+        "WcsPlugInService", `
+        "WdiServiceHost", `
+        "WdiSystemHost", `
+        "WdNisSvc", `
+        "WebClient", `
+        "webthreatdefsvc", `
+        "webthreatdefusersvc_*", `
+        "Wecsvc", `
+        "WEPHOSTSVC", `
+        "wercplsupport", `
+        "WerSvc", `
+        "WFDSConMgrSvc", `
+        "WiaRpc", `
+        "WinDefend", `
+        "WinHttpAutoProxySvc", `
+        "Winmgmt", `
+        "WinRM", `
+        "wisvc", `
+        "WlanSvc", `
+        "wlidsvc", `
+        "wlpasvc", `
+        "WManSvc", `
+        "wmiApSrv", `
+        "WMPNetworkSvc", `
+        "workfolderssvc", `
+        "WpcMonSvc", `
+        "WPDBusEnum", `
+        "WpnService", `
+        "WpnUserService_*", `
+        "wscsvc", `
+        "WSearch", `
+        "WSService", `
+        "wuauserv", `
+        "wudfsvc", `
+        "XblAuthManager", `
+        "XblGameSave", `
+        "XboxGipSvc", `
+        "XboxNetApiSvc")
+    foreach ( $service in $services ) {
+        Set-Service -Name $service -StartupType Manual
+    }        
 }
 
 function Set-DebloatEdge { # Debloat Edge   #~~# WORKS IN WIN11 #~~#
@@ -572,6 +843,9 @@ function Disable-MSLockscreenContent{ # Removes MS lockscreen ads (not the widge
 }
 
 Function Remove-Bloatware { # Remove Windows bloatware apps
+    # Remove "3D Objects" from This PC
+    Remove-Item -Path "HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\MyComputer\NameSpace\{0DB7E03F-FC29-4DC6-9020-FF41B59E513A}" -Recurse -ErrorAction SilentlyContinue
+
     $bloatwareApps = @(
         "Microsoft.3DBuilder",
         "Microsoft.BingNews",
@@ -634,6 +908,86 @@ function Set-UIResponseTweaks { # Set mouse hover and delay to be MUCH shorter t
     Write-Output "Mouse responsiveness tweaked! You fast af boiii!"
 }
 
+function Disable-Telemetry{ # Disables all telemetry from various sources
+    # Fix "Managed by your organization" in Edge
+    If (Test-Path "HKLM:\SOFTWARE\Policies\Microsoft\Edge") {
+        Remove-Item -Path "HKLM:\SOFTWARE\Policies\Microsoft\Edge" -Recurse -ErrorAction SilentlyContinue
+    }
+
+    # Disable Windows telemetry logs
+    $autoLoggerDir = "$env:PROGRAMDATA\Microsoft\Diagnosis\ETLLogs\AutoLogger"
+    If (Test-Path "$autoLoggerDir\AutoLogger-Diagtrack-Listener.etl") {
+        Remove-Item "$autoLoggerDir\AutoLogger-Diagtrack-Listener.etl"
+    }
+    icacls $autoLoggerDir /deny SYSTEM:`(OI`)`(CI`)F | Out-Null
+
+    # Disable Defender Auto Sample Submission
+    Set-MpPreference -SubmitSamplesConsent 2 -ErrorAction SilentlyContinue | Out-Null
+
+    # Disable Windows telemetry services
+    Get-Service -Name "DiagTrack", "dmwappushservice" | Stop-Service -Force -ErrorAction SilentlyContinue
+    Get-Service -Name "DiagTrack", "dmwappushservice" | Set-Service -StartupType Disabled -ErrorAction SilentlyContinue
+
+    # Block telemetry via registry
+    $telemetryKeys = @(
+        "HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Policies\DataCollection",
+        "HKLM:\SOFTWARE\Policies\Microsoft\Windows\DataCollection"
+    )
+    foreach ($key in $telemetryKeys) {
+        If (!(Test-Path $key)) { New-Item -Path $key -Force | Out-Null }
+        Set-ItemProperty -Path $key -Name "AllowTelemetry" -Type DWord -Value 0 -Force
+    }
+
+    # Block Microsoft telemetry servers via hosts file
+    $telemetryHosts = @(
+        "vortex.data.microsoft.com",
+        "settings-win.data.microsoft.com",
+        "watson.telemetry.microsoft.com",
+        "telemetry.microsoft.com",
+        "oca.telemetry.microsoft.com"
+    )
+    $hostsFile = "$env:SystemRoot\System32\drivers\etc\hosts"
+    foreach ($host in $telemetryHosts) {
+        if (!(Select-String -Path $hostsFile -Pattern $host -Quiet)) {
+            Add-Content -Path $hostsFile -Value "`n0.0.0.0 $host"
+        }
+    }
+
+    # Disable Cortana and search telemetry
+    $cortanaKeys = @(
+        "HKLM:\SOFTWARE\Policies\Microsoft\Windows\Windows Search",
+        "HKCU:\SOFTWARE\Microsoft\Windows\CurrentVersion\Search"
+    )
+    foreach ($key in $cortanaKeys) {
+        If (!(Test-Path $key)) { New-Item -Path $key -Force | Out-Null }
+        Set-ItemProperty -Path $key -Name "AllowCortana" -Type DWord -Value 0 -Force
+    }
+
+    # Disable Background Apps (reduces unwanted telemetry)
+    Set-ItemProperty -Path "HKCU:\Software\Microsoft\Windows\CurrentVersion\BackgroundAccessApplications" -Name "GlobalUserDisabled" -Type DWord -Value 1 -Force
+
+    # Disable Windows Customer Experience Improvement Program (CEIP)
+    $ceipKeys = @(
+        "HKLM:\SOFTWARE\Policies\Microsoft\SQMClient\Windows",
+        "HKLM:\SOFTWARE\Microsoft\SQMClient\Windows"
+    )
+    foreach ($key in $ceipKeys) {
+        If (!(Test-Path $key)) { New-Item -Path $key -Force | Out-Null }
+        Set-ItemProperty -Path $key -Name "CEIPEnable" -Type DWord -Value 0 -Force
+    }
+
+    # Disable PowerShell 7 telemetry
+    [Environment]::SetEnvironmentVariable('POWERSHELL_TELEMETRY_OPTOUT', '1', 'Machine')
+}
+
+function Optimize-SvcHost{ # Group svchost.exe processes for better performance
+    $ram = (Get-CimInstance -ClassName Win32_PhysicalMemory | Measure-Object -Property Capacity -Sum).Sum / 1kb
+    Set-ItemProperty -Path "HKLM:\SYSTEM\CurrentControlSet\Control" -Name "SvcHostSplitThresholdInKB" -Type DWord -Value $ram -Force
+}
+
+function Enable-LegacyBoot{ # Enable legacy boot menu, such as F8 at boot
+    bcdedit /set `{current`} bootmenupolicy Legacy | Out-Null
+}
 
 #
 # NOT WORKING IN WIN11
