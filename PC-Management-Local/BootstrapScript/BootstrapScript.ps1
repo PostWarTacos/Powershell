@@ -838,8 +838,8 @@ function Disable-Copilot{ # Remove Copilot and disable it's ability to reinstall
 }
 
 function Disable-MSLockscreenContent{ # Removes MS lockscreen ads (not the widgets)
-    # HKEY_CURRENT_USER\Software\Microsoft\Windows\CurrentVersion\ContentDeliveryManager
-        #SubscribedContent-338387Enabled (This disables the stock widget)
+    Set-ItemProperty -Path HKCU:\Software\Microsoft\Windows\CurrentVersion\ContentDeliveryManager -Name SubscribedContent-338387Enabled `
+        -Value 0 -Force
 }
 
 Function Remove-Bloatware { # Remove Windows bloatware apps
