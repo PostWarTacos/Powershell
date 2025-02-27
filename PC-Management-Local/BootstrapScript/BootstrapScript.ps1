@@ -29,8 +29,9 @@ JanDeDobbeleer.OhMyPosh
 Microsoft.WindowsTerminal
 Notion.Notion
 Spotify.Spotify
+Microsoft.Sysinternals
 VSCodium.VSCodium
-WinFetch
+WinFetch    (separate install)
 Manually install DoD Certs        (https://militarycac.com/windows8.htm#Windows_RT)
 RuckZuck    (separate install)
 Devolutions.RemoteDesktopManager    (work only)
