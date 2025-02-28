@@ -9,6 +9,10 @@ $healthLog = [System.Collections.ArrayList]@()
 $healthLogPath = "C:\drivers\CCM\Logs\"
 $corruption = 0
 
+If( -not ( Test-Path $healthLogPath )) {
+    mkdir $healthLogPath
+}
+
 # Check if SCCM Client is installed
 $clientPath = "C:\Windows\CCM\CcmExec.exe"
 if ( Test-Path $clientPath ){
@@ -101,7 +105,7 @@ if ( Test-Path $ccmEvalLogPath ) {
 if ( $corruption -eq 0 ){
     $results = "Healthy Client"
 } else {
-    $results = "Corrupt Client"
+    $results = "Corrupt Client, $( $ccmEvalResults | select -last 1 )"
 }
 
 if ( -not ( Test-Path $healthLogPath )){
