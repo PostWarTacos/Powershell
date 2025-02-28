@@ -93,7 +93,7 @@ if ( Test-Path $ccmEvalLogPath ) {
 
     if ( $ccmEvalResults ) {
         $healthLog.Add( "[$(get-date -Format "dd-MMM-yy HH:mm:ss")] Message: SCCM Client health check failed per CCMEval logs." ) | Out-Null
-        $mostRecentFail = "$( $ccmEvalResults | select -last 1 )."  | Out-Null
+        $mostRecentFail = "$( $ccmEvalResults | select -last 1 )."
         if ($mostRecentFail -match 'LOG\[(.*?)\]LOG') {
             $failMsg = $matches[1]
             $healthLog.Add( "[$(get-date -Format "dd-MMM-yy HH:mm:ss")] Message: $( $failMsg )." ) | Out-Null
