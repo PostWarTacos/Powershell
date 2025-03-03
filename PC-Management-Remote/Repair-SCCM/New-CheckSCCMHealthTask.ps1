@@ -68,7 +68,6 @@ $desc = "Will create a scheduled task to run only when triggered. When triggered
 
 Register-ScheduledTask -TaskName "Repair-SCCMTask"
                         -Action $action
-                        -Trigger $trigger
                         -settings $settings
                         -Principal $principal
                         -Description $desc
