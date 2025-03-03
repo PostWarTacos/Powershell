@@ -31,7 +31,7 @@ $settings = New-ScheduledTaskSettingsSet -WakeToRun
 
 $principal = New-ScheduledTaskPrincipal -UserId "NT AUTHORITY\SYSTEM" -LogonType ServiceAccount
 
-$description = "Will download, store locally newest update to Check-SCCMHealth, and then run it. Output will be stored locally until retrieved by server."
+$description = "Will create a scheduled task to run based on even/odd store number. Task will run Check-SCCMHealth. Output will be stored locally until retrieved by server."
 
 
 Register-ScheduledTask -TaskName "Check-SCCMHealthTask" `
