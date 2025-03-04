@@ -4,6 +4,8 @@
 #   Author: Matthew Wurtz
 #>>
 
+# Comment line 114 for JUST a health check through CC!!
+
 # Creates an Arraylist which is mutable and easier to manipulate than an array.
 $healthLog = [System.Collections.ArrayList]@()
 $healthLogPath = "C:\drivers\CCM\Logs\"
@@ -111,6 +113,7 @@ if ( $corruption -eq 0 ){
     $results = "Healthy Client"
 } else {
     $results = "Corrupt Client, $failMsg"
+    Start-ScheduledTask "Repair-SCCMTask" # Comment this line for JUST a health check through CC.
 }
 
 if ( -not ( Test-Path $healthLogPath )){
