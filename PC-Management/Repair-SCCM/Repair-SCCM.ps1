@@ -102,38 +102,41 @@ if ( $found ){
         "PolicyAgent successfully processed the policy assignment",
         "Completed policy evaluation cycle"
     )
-    
+                             
     $success = $recentLogs | Select-String -Pattern $patterns
     
     # Announce success/fail
     if ( $success ) {
-        Write-Host "Service restarted successfully. Manually check if issue is resolved. Ending actions on current target." -ForegroundColor Yellow
-        Write-Host "Disconnecting from current session and moving to the next target." -ForegroundColor Yellow
-        "[$(get-date -Format "dd-MMM-yy HH:mm:ss")] Message: Service restarted successfully. Manually check if issue is resolved. Ending actions on current target." >> "$healthLogPath\HealthCheck.txt" 
+        $message = "Service restarted successfully and MP contacted."
+        "[$(get-date -Format "dd-MMM-yy HH:mm:ss")] Message: $message Ending actions on current target." >> "$healthLogPath\HealthCheck.txt" 
         #$sessionId = $PSSession.Id
         $psSenderInfo = $( $EXECUTIONCONTEXT.SessionState.PSVariable.GetValue( "PSSenderInfo" ))
         if ( $psSenderInfo ) {
             Remove-PSSession -Id $psSenderInfo.SessionId
         }
-        return
+        return $message
     } else {
-        Write-Host "Failed to start service. Continuing with SCCM Client repair." -ForegroundColor Yellow
-        "[$(get-date -Format "dd-MMM-yy HH:mm:ss")] Message: Failed to start service. Continuing with SCCM Client repair." >> "$healthLogPath\HealthCheck.txt" 
+        $message = "Failed to start service. Continuing with SCCM Client repair."
+        "[$(get-date -Format "dd-MMM-yy HH:mm:ss")] Message: $message" >> "$healthLogPath\HealthCheck.txt"
+        return $message
     }
 } Else {
-    Write-Host "CcmExec Service not installed."
-    "[$(get-date -Format "dd-MMM-yy HH:mm:ss")] Message: CcmExec Service not installed." >> "$healthLogPath\HealthCheck.txt" 
+    $message = "CcmExec Service not installed."
+    "[$(get-date -Format "dd-MMM-yy HH:mm:ss")] Message: $message" >> "$healthLogPath\HealthCheck.txt" 
+    return $message
 }
 
 # Clean uninstall
 Write-Host "(Step 2 of 6) Performing complete clean uninstall." -ForegroundColor Yellow
 if ( Test-Path C:\Windows\ccmsetup\ccmsetup.exe ){
     C:\Windows\ccmsetup\ccmsetup.exe /uninstall
-    Write-Host "Ccmsetup.exe uninstalled. Continuing."
-    "[$(get-date -Format "dd-MMM-yy HH:mm:ss")] Message: Ccmsetup.exe uninstalled. Continuing." >> "$healthLogPath\HealthCheck.txt" 
+    $message = "Ccmsetup.exe uninstalled. Continuing."
+    "[$(get-date -Format "dd-MMM-yy HH:mm:ss")] Message: $message" >> "$healthLogPath\HealthCheck.txt" 
+    return $message
 } else {
-    Write-Host "Ccmsetup.exe not found. Continuing."
-    "[$(get-date -Format "dd-MMM-yy HH:mm:ss")] Message: Ccmsetup.exe not found. Continuing." >> "$healthLogPath\HealthCheck.txt" 
+    $message = "Ccmsetup.exe not found. Continuing."
+    "[$(get-date -Format "dd-MMM-yy HH:mm:ss")] Message: $message" >> "$healthLogPath\HealthCheck.txt" 
+    return $message
 }
 
 # Remove both services “ccmsetup” and “SMS Agent Host”
@@ -146,11 +149,13 @@ foreach ( $service in $services ){
     if (get-service $service){
         Stop-ServiceWithTimeout $service
         sc delete $service -Force
-        Write-Host "$service service found and removed. Continuing."
-        "[$(get-date -Format "dd-MMM-yy HH:mm:ss")] Message: $service service found and removed. Continuing." >> "$healthLogPath\HealthCheck.txt" 
+        $message = "$service service found and removed. Continuing."
+        "[$(get-date -Format "dd-MMM-yy HH:mm:ss")] Message: $message" >> "$healthLogPath\HealthCheck.txt"
+        return $message
     } else{
-        Write-Host "$service service not found. Continuing."
-        "[$(get-date -Format "dd-MMM-yy HH:mm:ss")] Message: $service service not found. Continuing." >> "$healthLogPath\HealthCheck.txt" 
+        $message = "$service service not found. Continuing."
+        "[$(get-date -Format "dd-MMM-yy HH:mm:ss")] Message: $message" >> "$healthLogPath\HealthCheck.txt"
+        return $message
     }        
 }
 
@@ -165,11 +170,13 @@ $files = @(
 foreach ( $file in $files ){
     if ( Test-Path $file ){
         Remove-Item $file -Recurse -Force
-        Write-Host "$file found and removed. Continuing."
-        "[$(get-date -Format "dd-MMM-yy HH:mm:ss")] Message: $file found and removed. Continuing." >> "$healthLogPath\HealthCheck.txt" 
+        $message = "$file found and removed. Continuing."
+        "[$(get-date -Format "dd-MMM-yy HH:mm:ss")] Message: $message" >> "$healthLogPath\HealthCheck.txt"
+        return $message
     } else{
-        Write-Host "$file not found. Continuing."
-        "[$(get-date -Format "dd-MMM-yy HH:mm:ss")] Message: $file not found. Continuing." >> "$healthLogPath\HealthCheck.txt" 
+        $message = "$file not found. Continuing."
+        "[$(get-date -Format "dd-MMM-yy HH:mm:ss")] Message: $message" >> "$healthLogPath\HealthCheck.txt" 
+        return $message
     }
 }
 
@@ -189,18 +196,22 @@ $keys= @(
 foreach ( $key in $keys ){
     if( Test-Path $KEY ){
         Remove-Item $KEY -Force
-        Write-Host "$KEY found and removed. Continuing."
-        "[$(get-date -Format "dd-MMM-yy HH:mm:ss")] Message: $KEY found and removed. Continuing." >> "$healthLogPath\HealthCheck.txt" 
+        $message = "$KEY found and removed. Continuing."
+        "[$(get-date -Format "dd-MMM-yy HH:mm:ss")] Message: $message" >> "$healthLogPath\HealthCheck.txt" 
+        return $message
     } Else { 
-        Write-Host "Could not find $KEY. Continuing."
-        "[$(get-date -Format "dd-MMM-yy HH:mm:ss")] Message: $KEY not found. Continuing." >> "$healthLogPath\HealthCheck.txt" 
+        $message = "Could not find $KEY. Continuing."
+        "[$(get-date -Format "dd-MMM-yy HH:mm:ss")] Message: $message" >> "$healthLogPath\HealthCheck.txt" 
+        return $message
     }
 }
 
 # Reinstall SCCM via \\slrcp223\SMS_PCI\Clientccmsetup.exe
 Write-Host "(Step 6 of 6) Attempting reinstall." -ForegroundColor Yellow
 & "\\slrcp223\SMS_PCI\Clientccmsetup.exe /logon SMSSITECODE=PCI" # Might need to add switches. In discussion
-"[$(get-date -Format "dd-MMM-yy HH:mm:ss")] Message: Initiating reinstall." >> "$healthLogPath\HealthCheck.txt" 
+$message = "Initiating reinstall."
+"[$(get-date -Format "dd-MMM-yy HH:mm:ss")] Message: $message" >> "$healthLogPath\HealthCheck.txt" 
+return $message
 
 # Might need to add step 7.
 <#
