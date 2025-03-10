@@ -89,17 +89,22 @@ if ( $found ){
     Start-Service CcmExec -ErrorAction SilentlyContinue
 
     # Start service
-    Start-Sleep -Seconds 5  # Allow some time for the service to start
+    Start-Sleep -Seconds 10 # Allow some time for the service to start
 
     # Attempt to contact MP and pull new policy. If this works, client should be healthy.
     $policyUpdate = Invoke-WmiMethod -Namespace "root\ccm" -Class "SMS_Client" -Name "TriggerSchedule"
         -ArgumentList "{00000000-0000-0000-0000-000000000021}"
     $logPath = "C:\Windows\CCM\Logs\PolicyAgent.log"
     $recentLogs = Get-Content $logPath -Tail 50
-    $success = $recentLogs | Select-String -Pattern "Updated namespace .* successfully|`
-        Successfully received policy assignments from MP|PolicyAgent successfully processed the policy assignment|`
-        Completed policy evaluation cycle"
-
+    $patterns = @(
+        "Updated namespace .* successfully",
+        "Successfully received policy assignments from MP",
+        "PolicyAgent successfully processed the policy assignment",
+        "Completed policy evaluation cycle"
+    )
+    
+    $success = $recentLogs | Select-String -Pattern $patterns
+    
     # Announce success/fail
     if ( $success ) {
         Write-Host "Service restarted successfully. Manually check if issue is resolved. Ending actions on current target." -ForegroundColor Yellow
