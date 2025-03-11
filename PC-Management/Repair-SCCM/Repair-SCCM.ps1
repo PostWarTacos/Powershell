@@ -30,6 +30,8 @@ Sometimes AV stops the reinstall. Kill AV solution.
 
 #>
 
+
+
 function Stop-ServiceWithTimeout {
     param (
         [Parameter(Mandatory=$true)]
@@ -69,10 +71,10 @@ function Stop-ServiceWithTimeout {
 Clear-Host
 
 # Creates an Arraylist which is mutable and easier to manipulate than an array.
+$message = "Attempting repair actions."
 $healthLogPath = "C:\drivers\CCM\Logs\"
-"[$(get-date -Format "dd-MMM-yy HH:mm:ss")] Message: $($_)" >> "$healthLogPath\HealthCheck.txt" 
-"[$(get-date -Format "dd-MMM-yy HH:mm:ss")] Message: Attempting repair actions." >> "$healthLogPath\HealthCheck.txt" 
-Write-Host "Running all repair actions..."
+"[$(get-date -Format "dd-MMM-yy HH:mm:ss")] Message: $message" >> "$healthLogPath\HealthCheck.txt" 
+return $message
 
 # Remove certs and restart service
 # Possible this is the only needed fix.
@@ -212,46 +214,3 @@ Write-Host "(Step 6 of 6) Attempting reinstall." -ForegroundColor Yellow
 $message = "Initiating reinstall."
 "[$(get-date -Format "dd-MMM-yy HH:mm:ss")] Message: $message" >> "$healthLogPath\HealthCheck.txt" 
 return $message
-
-# Might need to add step 7.
-<#
-Manually reinstall vcredist_x64
-
-Sometimes AV stops the reinstall. Kill AV solution. 
-
-a.  Reinstall vcredist_x64.exe / vcredist_x86.exe (possible locations listed below)
-    i.   C:\Windows\ccmsetup\vcredist_x64.exe
-    ii.  \\slrcp223\SMS_PCI\Client\x64\vcredist_x64.exe
-b.	Run CCMSETUP again
-#>
-
-# Reinstall BITS script
-<#
-Invoke-Command -Session $sessions -ScriptBlock {
-    sc sdset bits "D:(A;;CCDCLCSWRPWPDTLOCRSDRCWDWO;;;SY)(A;;CCDCLCSWRPWPDTLOCRSDRCWDWO;;;BA)(A;;CCLCSWLOCRRC;;;IU)(A;;CCLCSWLOCRRC;;;SU)S:(AU;SAFA;WDWO;;;BA)"
-    sc config bits start= auto
-    Remove-Item -Path "$ENV:ALLUSERSPROFILE\Application Data\Microsoft\Network\Downloader\qmgr0.dat" -Force -ErrorAction SilentlyContinue
-    Remove-Item -Path "$ENV:ALLUSERSPROFILE\Application Data\Microsoft\Network\Downloader\qmgr1.dat" -Force -ErrorAction SilentlyContinue
-    Start-Service -Name bits
-}
-#>
-
-# Reinstall BITS - Method 2
-<#
-These commands will reset the permissions on 4 dependent services, set them to automatic start, and try to start the services.
-
-sc sdset RpcEptMapper "D:(A;;CCLCLORC;;;AU)(A;;CCDCLCSWRPWPDTLORCWDWO;;;SY)(A;;CCLCSWRPWPDTLORCWDWO;;;BA)(A;;CCLCRPLO;;;BU)S:(AU;FA;CCDCLCSWRPWPDTLOSDRCWDWO;;;WD)"
-sc sdset DcomLaunch   "D:(A;;CCLCLORC;;;AU)(A;;CCDCLCSWRPWPDTLORCWDWO;;;SY)(A;;CCLCSWRPWPDTLORCWDWO;;;BA)(A;;CCLCLO;;;BU)S:(AU;FA;CCDCLCSWRPWPDTLOSDRCWDWO;;;WD)"
-sc sdset RpcSs        "D:(A;;CCLCLORC;;;AU)(A;;CCDCLCSWRPWPDTLORCWDWO;;;SY)(A;;CCLCSWRPWPDTLORCWDWO;;;BA)(A;;CCLCLO;;;BU)S:(AU;FA;CCDCLCSWRPWPDTLOSDRCWDWO;;;WD)"
-sc sdset EventSystem  "D:(A;;CCLCSWRPWPDTLOCRRC;;;SY)(A;;CCDCLCSWRPWPDTLOCRSDRCWDWO;;;BA)(A;;CCLCSWLOCRRC;;;IU)(A;;CCLCSWLOCRRC;;;SU)S:(AU;FA;CCDCLCSWRPWPDTLOCRSDRCWDWO;;;WD)"
-
-sc config RpcEptMapper start= auto
-sc config DcomLaunch start= auto
-sc config RpcSs start= auto
-sc config EventSystem start= auto
-
-net start RpcEptMapper
-net start DcomLaunch
-net start RpcSs
-net start EventSystem
-#>
