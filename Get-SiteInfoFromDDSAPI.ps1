@@ -12,8 +12,10 @@ $db = $web.content | ConvertFrom-Json
 
 $output = @()
 
-$list = get-content C:\users\wurtzmt\Documents\EOL_List.txt
+$list = get-content C:\users\wurtzmt\Desktop\corrupt.txt
 foreach ( $pc in $list ){
     $site = $db | select storeNumber,siteCode,ipSubnet,timeZone | where sitecode -eq $pc.substring(1,4)
     $output += [PSCustomObject]@{ComputerName=$pc; SiteCode=$site.siteCode; StoreNumber=$site.storeNumber; Timezone=$site.timeZone}
 }
+
+$output | Export-Csv C:\Users\wurtzmt\Desktop\corrupt.csv
