@@ -41,7 +41,7 @@ function Stop-ServiceWithTimeout {
     )
 
     Write-Host "Attempting to stop service: $ServiceName"
-    Stop-Service -Name $ServiceName -Force -ErrorAction SilentlyContinue
+    Stop-Service -Name $ServiceName -Force -ErrorAction SilentlyContinue | Out-Null
 
     $elapsed = 0
     while ($elapsed -lt $TimeoutSeconds) {
@@ -53,7 +53,6 @@ function Stop-ServiceWithTimeout {
             Write-Host "Service $ServiceName stopped successfully."
             break
         }
-
         Write-Host "Waiting for service to stop... ($elapsed/$TimeoutSeconds)"
     }
 
@@ -84,7 +83,7 @@ write-host $message
 # Possible this is the only needed fix.
 # Run this first step and then test if it worked before continuing. 
 Write-Host "(Step 1 of 6) Stopping CcmExec to remove SMS certs." -ForegroundColor Yellow
-$found = Get-Service CcmExec -ErrorAction SilentlyContinue
+$found = Get-Service CcmExec | where status -ne "stopped" -ErrorAction SilentlyContinue
 if ( $found ){
     Stop-ServiceWithTimeout CcmExec
     do {
