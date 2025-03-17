@@ -41,7 +41,7 @@ function Stop-ServiceWithTimeout {
     )
 
     Write-Host "Attempting to stop service: $ServiceName"
-    Stop-Service -Name $ServiceName -Force -ErrorAction SilentlyContinue | Out-Null
+    Stop-Service -Name $ServiceName -Force -ErrorAction SilentlyContinue -WarningAction SilentlyContinue
 
     $elapsed = 0
     while ($elapsed -lt $TimeoutSeconds) {
