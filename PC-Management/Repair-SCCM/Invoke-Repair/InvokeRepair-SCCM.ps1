@@ -180,6 +180,9 @@ foreach ( $file in $files ){
     $proc = Get-Process | Where-Object { $_.modules.filename -like "$file*" }
     Stop-Process $proc.Id -Force
     $message = "$proc.name killed. Continuing."
+    "[$(get-date -Format "dd-MMM-yy HH:mm:ss")] Message: $message" >> "$healthLogPath\HealthCheck.txt" 
+        write-host $message
+    }
 }
 
 # Delete the folders for SCCM
