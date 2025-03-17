@@ -56,14 +56,20 @@ function Stop-ServiceWithTimeout {
         Write-Host "Waiting for service to stop... ($elapsed/$TimeoutSeconds)"
     }
 
-    # If the service is still running after the timeout, force kill the process
-    Write-Host "Timeout reached! Forcefully terminating the service process."
-    $serviceProcess = Get-WmiObject Win32_Service | Where-Object { $_.Name -eq $ServiceName }
-    if ( $serviceProcess -and $serviceProcess.ProcessId -ne 0 ) {
-        Stop-Process -Id $serviceProcess.ProcessId -Force -ErrorAction SilentlyContinue
-        Write-Host "Service process terminated."
-    } else {
-        Write-Host "Service was already stopped or process not found."
+    $service = Get-Service -Name $ServiceName -ErrorAction SilentlyContinue
+    if ($null -eq $service -or $service.Status -eq 'Stopped') {
+        break
+    }
+    else{
+        # If the service is still running after the timeout, force kill the process
+        Write-Host "Timeout reached! Forcefully terminating the service process."
+        $serviceProcess = Get-WmiObject Win32_Service | Where-Object { $_.Name -eq $ServiceName }
+        if ( $serviceProcess -and $serviceProcess.ProcessId -ne 0 ) {
+            Stop-Process -Id $serviceProcess.ProcessId -Force -ErrorAction SilentlyContinue
+            Write-Host "Service process terminated."
+        } else {
+            Write-Host "Service was already stopped or process not found."
+        }
     }
 }
 
@@ -89,7 +95,7 @@ if ( $found ){
     do {
         Start-Sleep -Seconds 5
         $service = Get-Service -Name CcmExec
-    } while ($_.Status -ne 'Stopped')
+    } while ($service.Status -ne 'Stopped')
     write-host "Removing SMS certs."
     Get-ChildItem Cert:\LocalMachine\SMS | Remove-Item
     Start-Service CcmExec -ErrorAction SilentlyContinue
