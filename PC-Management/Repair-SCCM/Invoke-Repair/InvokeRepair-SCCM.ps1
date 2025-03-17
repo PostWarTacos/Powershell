@@ -94,10 +94,6 @@ Write-Host "(Step 1 of 6) Stopping CcmExec to remove SMS certs." -ForegroundColo
 $found = Get-Service CcmExec | where status -ne "stopped" -ErrorAction SilentlyContinue
 if ( $found ){
     Stop-ServiceWithTimeout CcmExec
-    do {
-        Start-Sleep -Seconds 5
-        $service = Get-Service -Name CcmExec
-    } while ($service.Status -ne 'Stopped')
     write-host "Removing SMS certs."
     Get-ChildItem Cert:\LocalMachine\SMS | Remove-Item
     Start-Service CcmExec -ErrorAction SilentlyContinue
