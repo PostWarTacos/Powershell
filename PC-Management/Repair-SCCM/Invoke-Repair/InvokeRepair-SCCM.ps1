@@ -102,8 +102,7 @@ if ( $found ){
     Start-Sleep -Seconds 10 # Allow some time for the service to start
 
     # Attempt to contact MP and pull new policy. If this works, client should be healthy.
-    $policyUpdate = Invoke-WmiMethod -Namespace "root\ccm" -Class "SMS_Client" -Name "TriggerSchedule"
-        -ArgumentList "{00000000-0000-0000-0000-000000000021}"
+    $policyUpdate = Invoke-WmiMethod -Namespace "root\ccm" -Class "SMS_Client" -Name "TriggerSchedule" -ArgumentList "{00000000-0000-0000-0000-000000000021}"
     $logPath = "C:\Windows\CCM\Logs\PolicyAgent.log"
     $recentLogs = Get-Content $logPath -Tail 50
     $patterns = @(
@@ -156,7 +155,7 @@ $services = @(
     "ccmsetup"
 )
 foreach ( $service in $services ){
-    if (get-service $service){
+    if ( get-service $service -ErrorAction SilentlyContinue ){
         Stop-ServiceWithTimeout $service
         sc delete $service -Force
         $message = "$service service found and removed. Continuing."
