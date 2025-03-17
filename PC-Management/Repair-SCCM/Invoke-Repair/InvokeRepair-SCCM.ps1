@@ -53,12 +53,14 @@ function Stop-ServiceWithTimeout {
             Write-Host "Service $ServiceName stopped successfully."
             break
         }
-        Write-Host "Waiting for service to stop... ($elapsed/$TimeoutSeconds)"
+        else{
+            Write-Host "Waiting for service to stop... ($elapsed/$TimeoutSeconds)"
+        }
     }
 
     $service = Get-Service -Name $ServiceName -ErrorAction SilentlyContinue
     if ($null -eq $service -or $service.Status -eq 'Stopped') {
-        break
+        # do nothing
     }
     else{
         # If the service is still running after the timeout, force kill the process
