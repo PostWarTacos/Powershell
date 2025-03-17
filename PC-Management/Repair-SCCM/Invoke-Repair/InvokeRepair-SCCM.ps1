@@ -51,6 +51,7 @@ function Stop-ServiceWithTimeout {
         $service = Get-Service -Name $ServiceName -ErrorAction SilentlyContinue
         if ($null -eq $service -or $service.Status -eq 'Stopped') {
             Write-Host "Service $ServiceName stopped successfully."
+            break
         }
 
         Write-Host "Waiting for service to stop... ($elapsed/$TimeoutSeconds)"
@@ -87,9 +88,10 @@ $found = Get-Service CcmExec -ErrorAction SilentlyContinue
 if ( $found ){
     Stop-ServiceWithTimeout CcmExec
     do {
-        Start-Sleep -Seconds 3
+        Start-Sleep -Seconds 5
         $service = Get-Service -Name CcmExec
     } while ($_.Status -ne 'Stopped')
+    write-host "Removing SMS certs."
     Get-ChildItem Cert:\LocalMachine\SMS | Remove-Item
     Start-Service CcmExec -ErrorAction SilentlyContinue
 
