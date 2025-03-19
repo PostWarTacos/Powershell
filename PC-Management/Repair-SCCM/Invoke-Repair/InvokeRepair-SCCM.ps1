@@ -119,7 +119,7 @@ if ( $found ){
     
     # Announce success/fail
     if ( $success ) {
-        $message = "Service restarted successfully and MP contacted."
+        $message = "Service restarted successfully and MP contacted. Assuming resolved, ending script."
         "[$(get-date -Format "dd-MMM-yy HH:mm:ss")] Message: $message Ending actions on current target." >> "$healthLogPath\HealthCheck.txt" 
         #$sessionId = $PSSession.Id
         $psSenderInfo = $( $EXECUTIONCONTEXT.SessionState.PSVariable.GetValue( "PSSenderInfo" ))
@@ -133,7 +133,7 @@ if ( $found ){
         write-host $message -ForegroundColor Yellow
     }
 } Else {
-    $message = "CcmExec Service not installed."
+    $message = "CcmExec Service not installed. Continuing with SCCM Client repair."
     "[$(get-date -Format "dd-MMM-yy HH:mm:ss")] Message: $message" >> "$healthLogPath\HealthCheck.txt" 
     write-host $message -ForegroundColor Yellow
 }
