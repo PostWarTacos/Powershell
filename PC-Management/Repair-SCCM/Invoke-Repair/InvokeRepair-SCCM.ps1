@@ -183,11 +183,11 @@ foreach ( $file in $files ){
     $proc = Get-Process | Where-Object { $_.modules.filename -like "$file*" }
     if ($proc){
         Stop-Process $proc.Id -Force
-        $message = "$proc.name killed. Continuing."
+        $message = "$($proc).name killed. Continuing."
         "[$(get-date -Format "dd-MMM-yy HH:mm:ss")] Message: $message" >> "$healthLogPath\HealthCheck.txt" 
         write-host $message -ForegroundColor Green
     } Else{
-        $message = "$proc.name not found. Continuing."
+        $message = "$($proc).name not found. Continuing."
         "[$(get-date -Format "dd-MMM-yy HH:mm:ss")] Message: $message" >> "$healthLogPath\HealthCheck.txt" 
         write-host $message -ForegroundColor Red
     }
