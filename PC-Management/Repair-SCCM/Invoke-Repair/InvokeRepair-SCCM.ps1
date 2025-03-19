@@ -75,6 +75,9 @@ function Stop-ServiceWithTimeout {
     }
 }
 
+#============
+# MAIN SCRIPT
+#============
 
 Clear-Host
 
@@ -91,7 +94,7 @@ write-host $message
 # Possible this is the only needed fix.
 # Run this first step and then test if it worked before continuing. 
 Write-Host "(Step 1 of 7) Stopping CcmExec to remove SMS certs." -ForegroundColor Yellow
-$found = Get-Service CcmExec | where status -ne "stopped" -ErrorAction SilentlyContinue
+$found = Get-Service CcmExec -ErrorAction SilentlyContinue | where status -ne "stopped"
 if ( $found ){
     Stop-ServiceWithTimeout CcmExec
     write-host "Removing SMS certs."
@@ -123,16 +126,16 @@ if ( $found ){
         if ( $psSenderInfo ) {
             Remove-PSSession -Id $psSenderInfo.SessionId
         }
-        write-host $message
+        write-host $message -ForegroundColor Green
     } else {
         $message = "Failed to start service. Continuing with SCCM Client repair."
         "[$(get-date -Format "dd-MMM-yy HH:mm:ss")] Message: $message" >> "$healthLogPath\HealthCheck.txt"
-        write-host $message
+        write-host $message -ForegroundColor Red
     }
 } Else {
     $message = "CcmExec Service not installed."
     "[$(get-date -Format "dd-MMM-yy HH:mm:ss")] Message: $message" >> "$healthLogPath\HealthCheck.txt" 
-    write-host $message
+    write-host $message -ForegroundColor Red
 }
 
 # Clean uninstall
@@ -141,11 +144,11 @@ if ( Test-Path C:\Windows\ccmsetup\ccmsetup.exe ){
     C:\Windows\ccmsetup\ccmsetup.exe /uninstall
     $message = "Ccmsetup.exe uninstalled. Continuing."
     "[$(get-date -Format "dd-MMM-yy HH:mm:ss")] Message: $message" >> "$healthLogPath\HealthCheck.txt" 
-    write-host $message
+    write-host $message -ForegroundColor Green
 } else {
     $message = "Ccmsetup.exe not found. Continuing."
     "[$(get-date -Format "dd-MMM-yy HH:mm:ss")] Message: $message" >> "$healthLogPath\HealthCheck.txt" 
-    write-host $message
+    write-host $message -ForegroundColor Red
 }
 
 # Remove both services “ccmsetup” and “SMS Agent Host”
@@ -160,11 +163,11 @@ foreach ( $service in $services ){
         sc delete $service -Force
         $message = "$service service found and removed. Continuing."
         "[$(get-date -Format "dd-MMM-yy HH:mm:ss")] Message: $message" >> "$healthLogPath\HealthCheck.txt"
-        write-host $message
+        write-host $message -ForegroundColor Green
     } else{
         $message = "$service service not found. Continuing."
         "[$(get-date -Format "dd-MMM-yy HH:mm:ss")] Message: $message" >> "$healthLogPath\HealthCheck.txt"
-        write-host $message
+        write-host $message -ForegroundColor Red
     }        
 }
 
@@ -178,10 +181,16 @@ $files = @(
 )
 foreach ( $file in $files ){
     $proc = Get-Process | Where-Object { $_.modules.filename -like "$file*" }
-    Stop-Process $proc.Id -Force
-    $message = "$proc.name killed. Continuing."
-    "[$(get-date -Format "dd-MMM-yy HH:mm:ss")] Message: $message" >> "$healthLogPath\HealthCheck.txt" 
-    write-host $message
+    if ($proc){
+        Stop-Process $proc.Id -Force
+        $message = "$proc.name killed. Continuing."
+        "[$(get-date -Format "dd-MMM-yy HH:mm:ss")] Message: $message" >> "$healthLogPath\HealthCheck.txt" 
+        write-host $message -ForegroundColor Green
+    } Else{
+        $message = "$proc.name not found. Continuing."
+        "[$(get-date -Format "dd-MMM-yy HH:mm:ss")] Message: $message" >> "$healthLogPath\HealthCheck.txt" 
+        write-host $message -ForegroundColor Red
+    }
 }
 
 # Delete the folders for SCCM
@@ -191,11 +200,11 @@ foreach ( $file in $files ){
         Remove-Item $file -Recurse -Force
         $message = "$file found and removed. Continuing."
         "[$(get-date -Format "dd-MMM-yy HH:mm:ss")] Message: $message" >> "$healthLogPath\HealthCheck.txt"
-        write-host $message
+        write-host $message -ForegroundColor Green
     } else{
         $message = "$file not found. Continuing."
         "[$(get-date -Format "dd-MMM-yy HH:mm:ss")] Message: $message" >> "$healthLogPath\HealthCheck.txt" 
-        write-host $message
+        write-host $message -ForegroundColor Red
     }
 }
 
@@ -214,14 +223,14 @@ $keys= @(
 )
 foreach ( $key in $keys ){
     if( Test-Path $KEY ){
-        Remove-Item $KEY -Force
+        Remove-Item $KEY -Recurse -Force
         $message = "$KEY found and removed. Continuing."
         "[$(get-date -Format "dd-MMM-yy HH:mm:ss")] Message: $message" >> "$healthLogPath\HealthCheck.txt" 
-        write-host $message
+        write-host $message -ForegroundColor Green
     } Else { 
         $message = "Could not find $KEY. Continuing."
         "[$(get-date -Format "dd-MMM-yy HH:mm:ss")] Message: $message" >> "$healthLogPath\HealthCheck.txt" 
-        write-host $message
+        write-host $message -ForegroundColor Red
     }
 }
 
@@ -230,4 +239,4 @@ Write-Host "(Step 7 of 7) Attempting reinstall." -ForegroundColor Yellow
 & "\\slrcp223\SMS_PCI\Clientccmsetup.exe /logon SMSSITECODE=PCI" # Might need to add switches. In discussion
 $message = "Initiating reinstall."
 "[$(get-date -Format "dd-MMM-yy HH:mm:ss")] Message: $message" >> "$healthLogPath\HealthCheck.txt" 
-write-host $message
+write-host $message  -ForegroundColor Cyan 
