@@ -197,6 +197,7 @@ foreach ( $file in $files ){
 Write-Host "(Step 5 of 7) Deleting all SCCM folders and files." -ForegroundColor Yellow
 foreach ( $file in $files ){
     if ( Test-Path $file ){
+        $ConfirmPreference = 'None'
         Remove-Item $file -Recurse -Force
         $message = "$file found and removed. Continuing."
         "[$(get-date -Format "dd-MMM-yy HH:mm:ss")] Message: $message" >> "$healthLogPath\HealthCheck.txt"
