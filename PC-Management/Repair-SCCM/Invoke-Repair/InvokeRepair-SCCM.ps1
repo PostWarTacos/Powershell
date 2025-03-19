@@ -88,12 +88,12 @@ If( -not ( Test-Path $healthLogPath )) {
     mkdir $healthLogPath
 }
 "[$(get-date -Format "dd-MMM-yy HH:mm:ss")] Message: $message" >> "$healthLogPath\HealthCheck.txt" 
-write-host $message
+write-host $message -ForegroundColor Cyan
 
 # Remove certs and restart service
 # Possible this is the only needed fix.
 # Run this first step and then test if it worked before continuing. 
-Write-Host "(Step 1 of 7) Stopping CcmExec to remove SMS certs." -ForegroundColor Yellow
+Write-Host "(Step 1 of 7) Stopping CcmExec to remove SMS certs." -ForegroundColor Cyan
 $found = Get-Service CcmExec -ErrorAction SilentlyContinue | where status -ne "stopped"
 if ( $found ){
     Stop-ServiceWithTimeout CcmExec
@@ -130,16 +130,16 @@ if ( $found ){
     } else {
         $message = "Failed to start service. Continuing with SCCM Client repair."
         "[$(get-date -Format "dd-MMM-yy HH:mm:ss")] Message: $message" >> "$healthLogPath\HealthCheck.txt"
-        write-host $message -ForegroundColor Red
+        write-host $message -ForegroundColor Yellow
     }
 } Else {
     $message = "CcmExec Service not installed."
     "[$(get-date -Format "dd-MMM-yy HH:mm:ss")] Message: $message" >> "$healthLogPath\HealthCheck.txt" 
-    write-host $message -ForegroundColor Red
+    write-host $message -ForegroundColor Yellow
 }
 
 # Clean uninstall
-Write-Host "(Step 2 of 7) Performing complete clean uninstall." -ForegroundColor Yellow
+Write-Host "(Step 2 of 7) Performing complete clean uninstall." -ForegroundColor Cyan
 if ( Test-Path C:\Windows\ccmsetup\ccmsetup.exe ){
     C:\Windows\ccmsetup\ccmsetup.exe /uninstall
     $message = "Ccmsetup.exe uninstalled. Continuing."
@@ -148,11 +148,11 @@ if ( Test-Path C:\Windows\ccmsetup\ccmsetup.exe ){
 } else {
     $message = "Ccmsetup.exe not found. Continuing."
     "[$(get-date -Format "dd-MMM-yy HH:mm:ss")] Message: $message" >> "$healthLogPath\HealthCheck.txt" 
-    write-host $message -ForegroundColor Red
+    write-host $message -ForegroundColor Yellow
 }
 
 # Remove both services “ccmsetup” and “SMS Agent Host”
-Write-Host "(Step 3 of 7) Stopping and removing CcmExec and CcmSetup services." -ForegroundColor Yellow
+Write-Host "(Step 3 of 7) Stopping and removing CcmExec and CcmSetup services." -ForegroundColor Cyan
 $services = @(
     "ccmexec",
     "ccmsetup"
@@ -167,12 +167,12 @@ foreach ( $service in $services ){
     } else{
         $message = "$service service not found. Continuing."
         "[$(get-date -Format "dd-MMM-yy HH:mm:ss")] Message: $message" >> "$healthLogPath\HealthCheck.txt"
-        write-host $message -ForegroundColor Red
+        write-host $message -ForegroundColor Yellow
     }        
 }
 
 # Kill all SCCM client processes
-Write-Host "(Step 4 of 7) Killing all tasks related to SCCM." -ForegroundColor Yellow
+Write-Host "(Step 4 of 7) Killing all tasks related to SCCM." -ForegroundColor Cyan
 $files = @(
     "C:\Windows\CCM",
     "C:\Windows\ccmcache",
@@ -187,14 +187,14 @@ foreach ( $file in $files ){
         "[$(get-date -Format "dd-MMM-yy HH:mm:ss")] Message: $message" >> "$healthLogPath\HealthCheck.txt" 
         write-host $message -ForegroundColor Green
     } Else{
-        $message = "$($proc.name) not found. Continuing."
+        $message = "Process tied to $file not found. Continuing."
         "[$(get-date -Format "dd-MMM-yy HH:mm:ss")] Message: $message" >> "$healthLogPath\HealthCheck.txt" 
-        write-host $message -ForegroundColor Red
+        write-host $message -ForegroundColor 
     }
 }
 
 # Delete the folders for SCCM
-Write-Host "(Step 5 of 7) Deleting all SCCM folders and files." -ForegroundColor Yellow
+Write-Host "(Step 5 of 7) Deleting all SCCM folders and files." -ForegroundColor Cyan
 foreach ( $file in $files ){
     if ( Test-Path $file ){
         $ConfirmPreference = 'None'
@@ -205,12 +205,12 @@ foreach ( $file in $files ){
     } else{
         $message = "$file not found. Continuing."
         "[$(get-date -Format "dd-MMM-yy HH:mm:ss")] Message: $message" >> "$healthLogPath\HealthCheck.txt" 
-        write-host $message -ForegroundColor Red
+        write-host $message -ForegroundColor Yellow
     }
 }
 
 # Delete the main registry keys associated with SCCM
-Write-Host "(Step 6 of 7) Deletinag all SCCM reg keys." -ForegroundColor Yellow
+Write-Host "(Step 6 of 7) Deletinag all SCCM reg keys." -ForegroundColor Cyan
 $keys= @(
     "HKLM:\Software\Microsoft\CCM",
     "HKLM:\Software\Microsoft\SMS",
@@ -231,12 +231,12 @@ foreach ( $key in $keys ){
     } Else { 
         $message = "Could not find $KEY. Continuing."
         "[$(get-date -Format "dd-MMM-yy HH:mm:ss")] Message: $message" >> "$healthLogPath\HealthCheck.txt" 
-        write-host $message -ForegroundColor Red
+        write-host $message -ForegroundColor Yellow
     }
 }
 
 # Reinstall SCCM via \\slrcp223\SMS_PCI\Clientccmsetup.exe
-Write-Host "(Step 7 of 7) Attempting reinstall." -ForegroundColor Yellow
+Write-Host "(Step 7 of 7) Attempting reinstall." -ForegroundColor Cyan
 & "\\slrcp223\SMS_PCI\Clientccmsetup.exe /logon SMSSITECODE=PCI" # Might need to add switches. In discussion
 $message = "Initiating reinstall."
 "[$(get-date -Format "dd-MMM-yy HH:mm:ss")] Message: $message" >> "$healthLogPath\HealthCheck.txt" 
