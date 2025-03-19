@@ -189,7 +189,7 @@ foreach ( $file in $files ){
     } Else{
         $message = "Process tied to $file not found. Continuing."
         "[$(get-date -Format "dd-MMM-yy HH:mm:ss")] Message: $message" >> "$healthLogPath\HealthCheck.txt" 
-        write-host $message -ForegroundColor 
+        write-host $message -ForegroundColor Yellow
     }
 }
 
