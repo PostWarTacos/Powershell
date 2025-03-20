@@ -251,7 +251,7 @@ New-PSDrive -name "X" -PSProvider FileSystem -root \\slrcp223\SMS_PCI -credentia
 # Reinstall SCCM via \\slrcp223\SMS_PCI\Clientccmsetup.exe
 Write-Host "(Step 7 of 7) Attempting reinstall." -ForegroundColor Cyan
 Copy-Item "X:\Client" "C:\Temp\CCM-Client" -Force -Recurse
-& "C:\Temp\CCM-Client\ccmsetup.exe /logon SMSSITECODE=PCI" # Might need to add switches. In discussion
+& "C:\Temp\CCM-Client\ccmsetup.exe" /logon SMSSITECODE=PCI # Might need to add switches. In discussion
 $message = "Initiating reinstall."
 "[$(get-date -Format "dd-MMM-yy HH:mm:ss")] Message: $message" >> "$healthLogPath\HealthCheck.txt" 
 write-host $message  -ForegroundColor Cyan 
