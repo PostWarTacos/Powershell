@@ -257,10 +257,7 @@ $principal = New-ScheduledTaskPrincipal -UserId "NT AUTHORITY\SYSTEM" -LogonType
 $action = New-ScheduledTaskAction -Execute "powershell.exe" -Argument "-NoProfile -ExecutionPolicy Bypass -EncodedCommand $encodedCommand"
 
 
-Register-ScheduledTask -TaskName "Run-CCMSetup"`
-                       -Action $action`
-                       -settings $settings`
-                       -Principal $principal
+Register-ScheduledTask -TaskName "Run-CCMSetup" -Action $action -settings $settings -Principal $principal
 
 
 Write-Host "Tasked created." -ForegroundColor Cyan
