@@ -235,30 +235,23 @@ foreach ( $key in $keys ){
     }
 }
 
-<#
+#
+# start create ps-drive
+#
+
+$user = "dpos\wurtzmt"
+$password = ConvertTo-SecureString "Xc38KVhTXc38KVhTXc38KVhTXc38KVhT" -asplaintext -force
+$credential = New-Object System.Management.Automation.PSCredential ($user, $password)
+New-PSDrive -name "X" -PSProvider FileSystem -root \\slrcp223\SMS_PCI -credential $credential -Persist
+
+#
+# end create ps-drive
+#
+
 # Reinstall SCCM via \\slrcp223\SMS_PCI\Clientccmsetup.exe
 Write-Host "(Step 7 of 7) Attempting reinstall." -ForegroundColor Cyan
-Copy-Item "\\slrcp223\SMS_PCI\Client" "C:\Temp\CCM-Client" -Force -Recurse
-& "C:\Temp\CCM-Client\Clientccmsetup.exe /logon SMSSITECODE=PCI" # Might need to add switches. In discussion
+Copy-Item "X:\Client" "C:\Temp\CCM-Client" -Force -Recurse
+& "C:\Temp\CCM-Client\ccmsetup.exe /logon SMSSITECODE=PCI" # Might need to add switches. In discussion
 $message = "Initiating reinstall."
 "[$(get-date -Format "dd-MMM-yy HH:mm:ss")] Message: $message" >> "$healthLogPath\HealthCheck.txt" 
 write-host $message  -ForegroundColor Cyan 
-#>
-
-Write-Host "(Step 7 of 7) Attempting reinstall." -ForegroundColor Cyan
-$encodedCommand = "QwBvAHAAeQAtAEkAdABlAG0AIAAiAFwAXABzAGwAcgBjAHAAMgAyADMAXABTAE0AUwBfAFAAQwBJAFwAQwBsAGkAZQBuAHQAIgAgACIAQwA6AFwAVABlAG0AcABcAEMAQwBNAC0AQwBsAGkAZQBuAHQAIgAgAC0ARgBvAHIAYwBlACAALQBSAGUAYwB1AHIAcwBlAA0ACgAmACAAIgBDADoAXABUAGUAbQBwAFwAQwBDAE0ALQBDAGwAaQBlAG4AdABcAEMAbABpAGUAbgB0AGMAYwBtAHMAZQB0AHUAcAAuAGUAeABlACAALwBsAG8AZwBvAG4AIABTAE0AUwBTAEkAVABFAEMATwBEAEUAPQBQAEMASQAiAA=="
-
-$settings = New-ScheduledTaskSettingsSet -WakeToRun
-$principal = New-ScheduledTaskPrincipal -UserId "NT AUTHORITY\SYSTEM" -LogonType ServiceAccount
-
-#========================
-# Create Repair-SCCM Task
-#========================
-$action = New-ScheduledTaskAction -Execute "powershell.exe" -Argument "-NoProfile -ExecutionPolicy Bypass -EncodedCommand $encodedCommand"
-
-
-Register-ScheduledTask -TaskName "Run-CCMSetup" -Action $action -settings $settings -Principal $principal
-
-
-Write-Host "Tasked created." -ForegroundColor Cyan
-Start-ScheduledTask -TaskName "Run-CCMSetup"
