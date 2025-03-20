@@ -1,5 +1,4 @@
-
-$scriptPath = "C:\Users\wurtzmt\Documents\Coding\PowerShell\PC-Management\Repair-SCCM\Check-SCCMHealth.ps1" # Path to your script
+$scriptPath = "C:\Users\wurtzmt\desktop\copyrun.ps1" # Path to your script
 $bytes = [System.Text.Encoding]::Unicode.GetBytes((Get-Content $scriptPath -Raw))
 $encodedCommand = [Convert]::ToBase64String($bytes)
 

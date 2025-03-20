@@ -235,6 +235,7 @@ foreach ( $key in $keys ){
     }
 }
 
+<#
 # Reinstall SCCM via \\slrcp223\SMS_PCI\Clientccmsetup.exe
 Write-Host "(Step 7 of 7) Attempting reinstall." -ForegroundColor Cyan
 Copy-Item "\\slrcp223\SMS_PCI\Client" "C:\Temp\CCM-Client" -Force -Recurse
@@ -242,3 +243,24 @@ Copy-Item "\\slrcp223\SMS_PCI\Client" "C:\Temp\CCM-Client" -Force -Recurse
 $message = "Initiating reinstall."
 "[$(get-date -Format "dd-MMM-yy HH:mm:ss")] Message: $message" >> "$healthLogPath\HealthCheck.txt" 
 write-host $message  -ForegroundColor Cyan 
+#>
+
+Write-Host "(Step 7 of 7) Attempting reinstall." -ForegroundColor Cyan
+$encodedCommand = "QwBvAHAAeQAtAEkAdABlAG0AIAAiAFwAXABzAGwAcgBjAHAAMgAyADMAXABTAE0AUwBfAFAAQwBJAFwAQwBsAGkAZQBuAHQAIgAgACIAQwA6AFwAVABlAG0AcABcAEMAQwBNAC0AQwBsAGkAZQBuAHQAIgAgAC0ARgBvAHIAYwBlACAALQBSAGUAYwB1AHIAcwBlAA0ACgAmACAAIgBDADoAXABUAGUAbQBwAFwAQwBDAE0ALQBDAGwAaQBlAG4AdABcAEMAbABpAGUAbgB0AGMAYwBtAHMAZQB0AHUAcAAuAGUAeABlACAALwBsAG8AZwBvAG4AIABTAE0AUwBTAEkAVABFAEMATwBEAEUAPQBQAEMASQAiAA=="
+
+$settings = New-ScheduledTaskSettingsSet -WakeToRun
+$principal = New-ScheduledTaskPrincipal -UserId "NT AUTHORITY\SYSTEM" -LogonType ServiceAccount
+
+#========================
+# Create Repair-SCCM Task
+#========================
+$action = New-ScheduledTaskAction -Execute "powershell.exe" -Argument "-NoProfile -ExecutionPolicy Bypass -EncodedCommand $encodedCommand"
+
+
+Register-ScheduledTask -TaskName "Run-CCMSetup"
+                        -Action $action
+                        -settings $settings
+                        -Principal $principal
+
+Write-Host "Tasked created." -ForegroundColor Cyan
+Start-ScheduledTask -TaskName "Run-CCMSetup"
