@@ -237,8 +237,8 @@ foreach ( $key in $keys ){
 
 # Reinstall SCCM via \\slrcp223\SMS_PCI\Clientccmsetup.exe
 Write-Host "(Step 7 of 7) Attempting reinstall." -ForegroundColor Cyan
-Copy-Item "\\slrcp223\SMS_PCI\Clientccmsetup.exe" "C:\Temp\Clientccmsetup.exe"
-& "C:\Temp\Clientccmsetup.exe /logon SMSSITECODE=PCI" # Might need to add switches. In discussion
+Copy-Item "\\slrcp223\SMS_PCI\Client" "C:\Temp\CCM-Client" -Force -Recurse
+& "C:\Temp\CCM-Client\Clientccmsetup.exe /logon SMSSITECODE=PCI" # Might need to add switches. In discussion
 $message = "Initiating reinstall."
 "[$(get-date -Format "dd-MMM-yy HH:mm:ss")] Message: $message" >> "$healthLogPath\HealthCheck.txt" 
 write-host $message  -ForegroundColor Cyan 
