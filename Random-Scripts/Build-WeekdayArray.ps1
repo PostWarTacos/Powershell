@@ -8,4 +8,5 @@ while( $date -ne $end.AddDays(1) ){
     $range.add($date) | Out-Null
     $date = $date.AddDays(1)
 }
+$range = $range | Where-Object { $_.DayofWeek -ne 'Saturday' -and $_.DayofWeek -ne 'Friday' }
 $range
