@@ -2,11 +2,12 @@
 #   Intent: Ran from Collection Commander. Will check 7 different points to verify the health of SCCM client
 #   Date: 24-Feb-25
 #   Author: Matthew Wurtz
-#>>
+#>
 
-# Comment line 114 for JUST a health check through CC!!
+#====================
+# VARIABLES AND MKDIR
+#====================
 
-# Creates an Arraylist which is mutable and easier to manipulate than an array.
 $healthLog = [System.Collections.ArrayList]@()
 $healthLogPath = "C:\drivers\CCM\Logs\"
 $corruption = 0
@@ -14,6 +15,10 @@ $corruption = 0
 If( -not ( Test-Path $healthLogPath )) {
     mkdir $healthLogPath
 }
+
+#=====================
+# HEALTH CHECK ACTIONS
+#=====================
 
 # Check if SCCM Client is installed
 $clientPath = "C:\Windows\CCM\CcmExec.exe"
@@ -72,42 +77,64 @@ if ( $mp.CurrentManagementPoint ) {
     $corruption += 1
 }
 
-# Check SCCM Client Health Evaluation (Using CCMEval Logs)
+#================
+# CCM CLIENT EVAL
+#================
+
 $ccmEvalLogPath = "C:\Windows\CCM\Logs\CCMEval.log"
-if ( Test-Path $ccmEvalLogPath ) {
-        
-    # Get the current date and calculate the date a week ago
-    $lastWeekDate = $( Get-Date ).AddDays( -7 )
 
-    # Regex pattern to match log entries with dates
-    $pattern = '<time=".*?" date="(\d{2})-(\d{2})-(\d{4})"'
-
-    # Read the log file and filter logs from the last week
-    $filteredLogs = Get-Content $ccmEvalLogPath -Raw | Where-Object {
-        if ( $_ -match $pattern ) {
-            $logDate = Get-Date "$( $matches[1] )/$( $matches[2] )/$( $matches[3] )" -Format "MM/dd/yyyy"
-            [datetime]$logDate -ge $lastWeekDate
-        }
-    }
-
-    # Searches filtered logs (last week) for the string "fail."
-    $ccmEvalResults = $filteredLogs | findstr /i fail
-
-    if ( $ccmEvalResults ) {
-        $healthLog.Add( "[$(get-date -Format "dd-MMM-yy HH:mm:ss")] Message: SCCM Client health check failed per CCMEval logs." ) | Out-Null
-        $mostRecentFail = "$( $ccmEvalResults | select -last 1 )."
-        if ($mostRecentFail -match 'LOG\[(.*?)\]LOG') {
-            $failMsg = $matches[1]
-            $healthLog.Add( "[$(get-date -Format "dd-MMM-yy HH:mm:ss")] Message: $( $failMsg )." ) | Out-Null
-        }
-        $corruption += 1
-    } else {
-        $healthLog.Add( "[$(get-date -Format "dd-MMM-yy HH:mm:ss")] Message: SCCM Client passed health check per CCMEval logs." ) | Out-Null
-    }
-} else {
-    $healthLog.Add( "[$(get-date -Format "dd-MMM-yy HH:mm:ss")] Message: CCMEval log not found. Unable to verify SCCM Client health." ) | Out-Null
-    $corruption += 1
+# Generate the log if it doesn't exist and re-register it as scheduled task
+if ( -not ( Test-Path $ccmEvalLogPath )) {
+    C:\Windows\ccm\CcmEval.exe /register
+    C:\Windows\ccm\CcmEval.exe /run
 }
+
+# Get the current date and calculate the date a week ago
+$lastWeekDate = $( Get-Date ).AddDays( -7 )
+
+# Regex pattern to match log entries with dates
+$pattern = '<time=".*?" date="(\d{2})-(\d{2})-(\d{4})"'
+
+# Read the log file and filter logs from the last week
+$filteredLogs = Get-Content $ccmEvalLogPath -Raw | Where-Object {
+    if ( $_ -match $pattern ) {
+        $logDate = Get-Date "$( $matches[1] )/$( $matches[2] )/$( $matches[3] )" -Format "MM/dd/yyyy"
+        [datetime]$logDate -ge $lastWeekDate
+    }
+}
+
+# Searches filtered logs (last week) for the string "fail."
+$ccmEvalResults = $filteredLogs | Select-String -CaseSensitive:$false -Pattern `
+    "Failed to", `
+    "Unable to", `
+    "WMI.*corrupt", `
+    "CcmExec.*not running", `
+    "Remediation failed", `
+    "Client is not healthy", `
+    "Required service.*not running", `
+    "Firewall exception", `
+    "Exit code: [1-9]", `
+    "Error code", `
+    "Failed to connect", `
+    "Failed to get"
+
+if ( $ccmEvalResults ) {
+    $healthLog.Add( "[$(get-date -Format "dd-MMM-yy HH:mm:ss")] Message: SCCM Client health check failed per CCMEval logs." ) | Out-Null
+    # $mostRecentFail = "$( $ccmEvalResults | select -last 1 )."
+    # if ($mostRecentFail -match 'LOG\[(.*?)\]LOG') {
+    #     $failMsg = $matches[1]
+    #     $healthLog.Add( "[$(get-date -Format "dd-MMM-yy HH:mm:ss")] Message: $( $failMsg )." ) | Out-Null
+    # }
+    # Outputs all fail messages within last week to healthcheck.txt
+    $healthLog.Add( "[$(get-date -Format "dd-MMM-yy HH:mm:ss")] Message: $( $ccmEvalResults )." ) | Out-Null
+    $corruption += 1
+} else {
+    $healthLog.Add( "[$(get-date -Format "dd-MMM-yy HH:mm:ss")] Message: SCCM Client passed health check per CCMEval logs." ) | Out-Null
+}
+
+#===============
+# REPORT RESULTS
+#===============
 
 if ( $corruption -eq 0 ){
     $results = "Healthy Client"
