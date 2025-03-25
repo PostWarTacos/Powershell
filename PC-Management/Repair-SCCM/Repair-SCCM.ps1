@@ -119,11 +119,6 @@ if ( $found ){
     # Announce success/fail
     if ( $success ) {
         $message = "Service restarted successfully and MP contacted. Assuming resolved, ending script."
-        #$sessionId = $PSSession.Id
-        $psSenderInfo = $( $EXECUTIONCONTEXT.SessionState.PSVariable.GetValue( "PSSenderInfo" ))
-        if ( $psSenderInfo ) {
-            Remove-PSSession -Id $psSenderInfo.SessionId
-        }
         Append-HealthLog -path $healthLogPath -message $message -writeHost -color Green -return
     } else {
         $message = "Failed to start service. Continuing with SCCM Client repair."
