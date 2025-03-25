@@ -1,4 +1,4 @@
-<#
+﻿<#
 #   Intent: Based on US AFCENT System Center Configuration Manger Current Branch (SCCM-CB)
 #       guide to troubleshoot and repair SCCM clients
 #   Date: 24-Feb-25
@@ -91,16 +91,15 @@ function Update-HealthLog {
 
     $healthLog.Add("[$(Get-Date -Format 'dd-MMM-yy HH:mm:ss')] Message: $message") | Out-Null
 
-    if ($PSBoundParameters.ContainsKey('WriteHost')) {
-        if ($PSBoundParameters.ContainsKey('Color')) {
-            Write-Host $message -ForegroundColor $color
-        } else {
-            Write-Host $message
-        }
+    if ( $PSBoundParameters.ContainsKey('WriteHost') -and $PSBoundParameters.ContainsKey('Color') ) {
+        Write-Host $message -ForegroundColor $color
+    }
+    else {
+        Write-Host $message
     }
 
     if ($PSBoundParameters.ContainsKey('Return')) {
-        $null = return $message
+        $null = return $message | Out-Null
     }
 }
 
