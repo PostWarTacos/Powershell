@@ -2,12 +2,10 @@ function Invoke-Script(){
     [CmdletBinding()]
     param (
         [Parameter(Mandatory)]
-        [String]
-        $computerName,
+        [String]$computerName,
         
         [Parameter(Mandatory)]
-        [String]
-        $filePath
+        [String]$filePath
     )
 
     $session = New-PSSession -ComputerName $computerName
@@ -18,3 +16,5 @@ function Invoke-Script(){
     # Clean up session
     Remove-PSSession $session
 }
+
+Export-ModuleMember Invoke-Script
