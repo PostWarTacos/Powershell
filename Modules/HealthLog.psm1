@@ -8,13 +8,13 @@ function Append-HealthLog {
         [string]$message,
 
         [Parameter()]
-        [string]$writeHost,
+        [switch]$writeHost,
 
         [Parameter()]
         [string]$color,
 
         [Parameter()]
-        [string]$return
+        [switch]$return
     )
 
     $healthLog = [System.Collections.ArrayList]@()
