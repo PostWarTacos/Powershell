@@ -31,7 +31,6 @@ Sometimes AV stops the reinstall. Kill AV solution.
 #>
 
 
-
 function Stop-ServiceWithTimeout {
     param (
         [Parameter(Mandatory=$true)]
@@ -75,6 +74,18 @@ function Stop-ServiceWithTimeout {
     }
 }
 
+if ( Test-Path $PSScriptRoot\HealthLog.psm1 ){
+    Import-Module $PSScriptRoot\HealthLog.psm1
+} Elseif ( Test-Path ..\Modules\HealthLog.psm1 ) {
+    Import-Module ..\Modules\HealthLog.psm1
+}
+
+$healthLogPath = "C:\drivers\ccm\logs"
+
+if ( -not ( Test-Path $healthLogPath )) {
+    mkdir $healthLogPath | Out-Null
+}
+
 #============
 # MAIN SCRIPT
 #============
@@ -82,15 +93,8 @@ function Stop-ServiceWithTimeout {
 Clear-Host
 
 # Creates an Arraylist which is mutable and easier to manipulate than an array.
-$healthLog = [System.Collections.ArrayList]@()
 $message = "Attempting repair actions."
-$healthLogPath = "C:\drivers\CCM\Logs\"
-If( -not ( Test-Path $healthLogPath )) {
-    mkdir $healthLogPath
-}
-$healthLog.Add("[$(get-date -Format "dd-MMM-yy HH:mm:ss")] Message: $message") | Out-Null
-write-host $message -ForegroundColor Cyan
-return $message
+Append-HealthLog -path $healthLogPath -message $message -writeHost -color Cyan -return
 
 # Remove certs and restart service
 # Possible this is the only needed fix.
@@ -122,25 +126,19 @@ if ( $found ){
     # Announce success/fail
     if ( $success ) {
         $message = "Service restarted successfully and MP contacted. Assuming resolved, ending script."
-        $healthLog.Add("[$(get-date -Format "dd-MMM-yy HH:mm:ss")] Message: $message Ending actions on current target.") | Out-Null
         #$sessionId = $PSSession.Id
         $psSenderInfo = $( $EXECUTIONCONTEXT.SessionState.PSVariable.GetValue( "PSSenderInfo" ))
         if ( $psSenderInfo ) {
             Remove-PSSession -Id $psSenderInfo.SessionId
         }
-        write-host $message -ForegroundColor Green
-        return $message
+        Append-HealthLog -path $healthLogPath -message $message -writeHost -color Green -return
     } else {
         $message = "Failed to start service. Continuing with SCCM Client repair."
-        $healthLog.Add("[$(get-date -Format "dd-MMM-yy HH:mm:ss")] Message: $message") | Out-Null
-        write-host $message -ForegroundColor Yellow
-        return $message
+        Append-HealthLog -path $healthLogPath -message $message -writeHost -color Yellow -return
     }
 } Else {
     $message = "CcmExec Service not installed. Continuing with SCCM Client repair."
-    $healthLog.Add("[$(get-date -Format "dd-MMM-yy HH:mm:ss")] Message: $message") | Out-Null
-    write-host $message -ForegroundColor Yellow
-    return $message
+    Append-HealthLog -path $healthLogPath -message $message -writeHost -color Yellow -return
 }
 
 # Clean uninstall
@@ -148,14 +146,10 @@ Write-Host "(Step 2 of 8) Performing complete clean uninstall." -ForegroundColor
 if ( Test-Path C:\Windows\ccmsetup\ccmsetup.exe ){
     C:\Windows\ccmsetup\ccmsetup.exe /uninstall
     $message = "Ccmsetup.exe uninstalled. Continuing."
-    $healthLog.Add("[$(get-date -Format "dd-MMM-yy HH:mm:ss")] Message: $message") | Out-Null
-    write-host $message -ForegroundColor Green
-    return $message
+    Append-HealthLog -path $healthLogPath -message $message -writeHost -color Green -return
 } else {
     $message = "Ccmsetup.exe not found. Continuing."
-    $healthLog.Add("[$(get-date -Format "dd-MMM-yy HH:mm:ss")] Message: $message") | Out-Null
-    write-host $message -ForegroundColor Yellow
-    return $message
+    Append-HealthLog -path $healthLogPath -message $message -writeHost -color Yellow -return
 }
 
 # Remove both services “ccmsetup” and “SMS Agent Host”
@@ -169,14 +163,10 @@ foreach ( $service in $services ){
         Stop-ServiceWithTimeout $service
         sc delete $service -Force
         $message = "$service service found and removed. Continuing."
-        $healthLog.Add("[$(get-date -Format "dd-MMM-yy HH:mm:ss")] Message: $message") | Out-Null
-        write-host $message -ForegroundColor Green
-        return $message
+        Append-HealthLog -path $healthLogPath -message $message -writeHost -color Green -return
     } else{
         $message = "$service service not found. Continuing."
-        $healthLog.Add("[$(get-date -Format "dd-MMM-yy HH:mm:ss")] Message: $message") | Out-Null
-        write-host $message -ForegroundColor Yellow
-        return $message
+        Append-HealthLog -path $healthLogPath -message $message -writeHost -color Yellow -return
     }        
 }
 
@@ -193,14 +183,10 @@ foreach ( $file in $files ){
     if ($proc){
         Stop-Process $proc.Id -Force
         $message = "$($proc.name) killed. Continuing."
-        $healthLog.Add("[$(get-date -Format "dd-MMM-yy HH:mm:ss")] Message: $message") | Out-Null
-        write-host $message -ForegroundColor Green
-        return $message
+        Append-HealthLog -path $healthLogPath -message $message -writeHost -color Green -return
     } Else{
         $message = "Process tied to $file not found. Continuing."
-        $healthLog.Add("[$(get-date -Format "dd-MMM-yy HH:mm:ss")] Message: $message") | Out-Null
-        write-host $message -ForegroundColor Yellow
-        return $message
+        Append-HealthLog -path $healthLogPath -message $message -writeHost -color Yellow -return
     }
 }
 
@@ -211,14 +197,10 @@ foreach ( $file in $files ){
         $ConfirmPreference = 'None'
         Remove-Item $file -Recurse -Force
         $message = "$file found and removed. Continuing."
-        $healthLog.Add("[$(get-date -Format "dd-MMM-yy HH:mm:ss")] Message: $message") | Out-Null
-        write-host $message -ForegroundColor Green
-        return $message
+        Append-HealthLog -path $healthLogPath -message $message -writeHost -color Green -return
     } else{
         $message = "$file not found. Continuing."
-        $healthLog.Add("[$(get-date -Format "dd-MMM-yy HH:mm:ss")] Message: $message") | Out-Null
-        write-host $message -ForegroundColor Yellow
-        return $message
+        Append-HealthLog -path $healthLogPath -message $message -writeHost -color Yellow -return
     }
 }
 
@@ -239,14 +221,10 @@ foreach ( $key in $keys ){
     if( Test-Path $KEY ){
         Remove-Item $KEY -Recurse -Force
         $message = "$KEY found and removed. Continuing."
-        $healthLog.Add("[$(get-date -Format "dd-MMM-yy HH:mm:ss")] Message: $message") | Out-Null
-        write-host $message -ForegroundColor Green
-        return $message
+        Append-HealthLog -path $healthLogPath -message $message -writeHost -color Green -return
     } Else { 
         $message = "Could not find $KEY. Continuing."
-        $healthLog.Add("[$(get-date -Format "dd-MMM-yy HH:mm:ss")] Message: $message") | Out-Null
-        write-host $message -ForegroundColor Yellow
-        return $message
+        Append-HealthLog -path $healthLogPath -message $message -writeHost -color Yellow -return
     }
 }
 
@@ -268,10 +246,7 @@ Write-Host "(Step 7 of 8) Attempting reinstall." -ForegroundColor Cyan
 Copy-Item "X:\Client" "C:\Temp\CCM-Client" -Force -Recurse
 & "C:\Temp\CCM-Client\ccmsetup.exe" /logon SMSSITECODE=PCI # Might need to add switches. In discussion
 $message = "Initiating reinstall."
-$healthLog.Add("[$(get-date -Format "dd-MMM-yy HH:mm:ss")] Message: $message") | Out-Null
-write-host $message  -ForegroundColor Cyan
-return $message
-
+Append-HealthLog -path $healthLogPath -message $message -writeHost -color Cyan -return
 
 #=================
 # RUN HEALTH CHECK
@@ -290,89 +265,63 @@ C:\windows\ccm\CcmEval.exe /run
 $clientPath = "C:\Windows\CCM\CcmExec.exe"
 if ( Test-Path $clientPath ){
     $message = "Found CcmExec.exe. SCCM installed."
-    $healthLog.Add("[$(get-date -Format "dd-MMM-yy HH:mm:ss")] Message: $message" ) | Out-Null
-    write-host $message -ForegroundColor Green
-    return $message
+    Append-HealthLog -path $healthLogPath -message $message -writeHost -color Green -return
 } Else {
 	$message = "Cannot find CcmExec.exe. SCCM Client is not installed."
-    $healthLog.Add("[$(get-date -Format "dd-MMM-yy HH:mm:ss")] Message: $message" ) | Out-Null
-    write-host $message -ForegroundColor Yellow
-    return $message
+    Append-HealthLog -path $healthLogPath -message $message -writeHost -color Yellow -return
 }
 				
 # Check if SCCM Client Service is running
 $service = Get-Service -Name CcmExec -ErrorAction SilentlyContinue
 if ( $service.Status -eq 'Running' ){
     $message = "Found CcmExec service and it is running."
-    $healthLog.Add("[$(get-date -Format "dd-MMM-yy HH:mm:ss")] Message: $message" ) | Out-Null
-    write-host $message -ForegroundColor Green
-    return $message
+    Append-HealthLog -path $healthLogPath -message $message -writeHost -color Green -return
 } Elseif ( $service.Status -ne 'Running' ) {
     $message = "Found CcmExec service but it is NOT running."
-    $healthLog.Add("[$(get-date -Format "dd-MMM-yy HH:mm:ss")] Message: $message" ) | Out-Null
-    write-host $message -ForegroundColor Yellow
-    return $message
+    Append-HealthLog -path $healthLogPath -message $message -writeHost -color Yellow -return
 } Else {
     $message = "CcmExec service could not be found. SCCM Client may not be installed."
-    $healthLog.Add("[$(get-date -Format "dd-MMM-yy HH:mm:ss")] Message: $message" ) | Out-Null
-    write-host $message -ForegroundColor Yellow
-    return $message
+    Append-HealthLog -path $healthLogPath -message $message -writeHost -color Yellow -return
 }
 
 # Check Client Version
 $smsClient = Get-WmiObject -Namespace "root\ccm" -Class SMS_Client -ErrorAction SilentlyContinue
 if ( $smsClient.ClientVersion ) {
     $message = "SCCM Client Version: $( $smsClient.ClientVersion )"
-    $healthLog.Add("[$(get-date -Format "dd-MMM-yy HH:mm:ss")] Message: $message" ) | Out-Null
-    write-host $message -ForegroundColor Green    
-    return $message
+    Append-HealthLog -path $healthLogPath -message $message -writeHost -color Green -return
 } else {
     $message = "SMS_Client.ClientVersion class not found. SCCM Client may not be installed."
-    $healthLog.Add("[$(get-date -Format "dd-MMM-yy HH:mm:ss")] Message: $message" ) | Out-Null
-    write-host $message -ForegroundColor Yellow
-    return $message
+    Append-HealthLog -path $healthLogPath -message $message -writeHost -color Yellow -return
 }    
 
 # Check Management Point Communication
 $mp = Get-WmiObject -Namespace "root\ccm" -Class SMS_Authority -ErrorAction SilentlyContinue
 if ( $mp.Name ) {
     $message = "SCCM Site found: $( $MP.Name )"
-    $healthLog.Add("[$(get-date -Format "dd-MMM-yy HH:mm:ss")] Message: $message" ) | Out-Null
-    write-host $message -ForegroundColor Green
-    return $message
+    Append-HealthLog -path $healthLogPath -message $message -writeHost -color Green -return
 } else {
     $message = "SMS_Authority.Name property not found. SCCM Client may not be installed."
-    $healthLog.Add("[$(get-date -Format "dd-MMM-yy HH:mm:ss")] Message: SMS_Authority.Name property not found. SCCM Client may not be installed." ) | Out-Null
-    write-host $message -ForegroundColor Yellow
-    return $message
+    Append-HealthLog -path $healthLogPath -message $message -writeHost -color Yellow -return
 }
 
 # Check Client ID
 $ccmClient = Get-WmiObject -Namespace "root\ccm" -Class CCM_Client -ErrorAction SilentlyContinue
 if ( $ccmClient.ClientId ) {
-    $message = ""
-    $healthLog.Add("[$(get-date -Format "dd-MMM-yy HH:mm:ss")] Message: SCCM Client Client ID found: $( $ccmClient.ClientId )" ) | Out-Null
-    write-host $message -ForegroundColor Green
-    return $message
+    $message = "SCCM Client Client ID found: $( $ccmClient.ClientId )"
+    Append-HealthLog -path $healthLogPath -message $message -writeHost -color Green -return
 } else {
-    $message = ""
-    $healthLog.Add("[$(get-date -Format "dd-MMM-yy HH:mm:ss")] Message: CCM_Client.ClientId property not found. SCCM Client may not be installed." ) | Out-Null
-    write-host $message -ForegroundColor Yellow
-    return $message
+    $message = "CCM_Client.ClientId property not found. SCCM Client may not be installed."
+    Append-HealthLog -path $healthLogPath -message $message -writeHost -color Yellow -return
 }   
     
 # Check Management Point Communication
 $mp = Get-WmiObject -Namespace "root\ccm" -Class SMS_Authority -ErrorAction SilentlyContinue
 if ( $mp.CurrentManagementPoint ) {
-    $message = ""
-    $healthLog.Add("[$(get-date -Format "dd-MMM-yy HH:mm:ss")] Message: SCCM Management Point found: $( $mp.CurrentManagementPoint )" ) | Out-Null
-    write-host $message -ForegroundColor Green
-    return $message
+    $message = "SCCM Management Point found: $( $mp.CurrentManagementPoint )"
+    Append-HealthLog -path $healthLogPath -message $message -writeHost -color Green -return
 } else {
-    $message = ""
-    $healthLog.Add("[$(get-date -Format "dd-MMM-yy HH:mm:ss")] Message: SMS_Authority.CurrentManagementPoint property not found. SCCM Client may not be installed." ) | Out-Null
-    write-host $message -ForegroundColor Yellow
-    return $message
+    $message = "SMS_Authority.CurrentManagementPoint property not found. SCCM Client may not be installed."
+    Append-HealthLog -path $healthLogPath -message $message -writeHost -color Yellow -return
 }
 
 $healthLog >> $healthLogPath\HealthCheck.txt
