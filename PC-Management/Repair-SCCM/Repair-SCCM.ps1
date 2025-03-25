@@ -100,7 +100,7 @@ function Update-HealthLog {
     }
 
     if ($PSBoundParameters.ContainsKey('Return')) {
-        return $message
+        return $message | Out-Null
     }
 }
 
