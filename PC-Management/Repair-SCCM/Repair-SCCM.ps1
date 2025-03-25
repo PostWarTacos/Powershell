@@ -13,13 +13,15 @@
 
 3. Remove both services “ccmsetup” and “SMS Agent Host”
 
-4. Delete the folders for SCCM
+4. End all SCCM tasks
 
-5. Delete the main registries associated with SCCM
+5. Delete the folders for SCCM
 
-6. Install from \\slrcp223\SMS_PCI\Client\ccmsetup.exe
+6. Delete the main registries associated with SCCM
 
-7. Manually reinstall
+7. Install from \\slrcp223\SMS_PCI\Client\ccmsetup.exe
+
+8. Manually reinstall
 
 #>
 
