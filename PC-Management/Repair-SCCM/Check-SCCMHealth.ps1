@@ -120,11 +120,10 @@ $ccmEvalResults = $filteredLogs | Select-String -CaseSensitive:$false -Pattern `
 
 if ( $ccmEvalResults ) {
     $healthLog.Add( "[$(get-date -Format "dd-MMM-yy HH:mm:ss")] Message: SCCM Client health check failed per CCMEval logs." ) | Out-Null
-    # $mostRecentFail = "$( $ccmEvalResults | select -last 1 )."
-    # if ($mostRecentFail -match 'LOG\[(.*?)\]LOG') {
-    #     $failMsg = $matches[1]
-    #     $healthLog.Add( "[$(get-date -Format "dd-MMM-yy HH:mm:ss")] Message: $( $failMsg )." ) | Out-Null
-    # }
+    $mostRecentFail = "$( $ccmEvalResults | select -last 1 )."
+    if ($mostRecentFail -match 'LOG\[(.*?)\]LOG') {
+        $failMsg = $matches[1]
+    }
     # Outputs all fail messages within last week to healthcheck.txt
     $healthLog.Add( "[$(get-date -Format "dd-MMM-yy HH:mm:ss")] Message: $( $ccmEvalResults )." ) | Out-Null
     $corruption += 1
