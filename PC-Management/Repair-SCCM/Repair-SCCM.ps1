@@ -5,7 +5,7 @@
 #   Author: Matthew Wurtz
 #>
 
-<# SCCM Reinstall
+<# Repair-SCCM
 
 1. Delete SMS certs and reload service. Test if fixed, end actions if it is.
 
@@ -20,13 +20,6 @@
 6. Install from \\slrcp223\SMS_PCI\Client\ccmsetup.exe
 
 7. Manually reinstall
-
-Sometimes AV stops the reinstall. Kill AV solution. 
-
-    a.  Reinstall vcredist_x64.exe / vcredist_x86.exe (possible locations listed below)
-        i.   C:\Windows\ccmsetup\vcredist_x64.exe
-        ii.  \\slrcp223\SMS_PCI\Client\x64\vcredist_x64.exe
-    b.	Run CCMSETUP again
 
 #>
 
@@ -233,7 +226,7 @@ foreach ( $key in $keys ){
 #
 
 $user = "dpos\wurtzmt"
-$password = ConvertTo-SecureString "Xc38KVhTXc38KVhTXc38KVhTXc38KVhT" -asplaintext -force
+$password = ConvertTo-SecureString "" -asplaintext -force
 $credential = New-Object System.Management.Automation.PSCredential ($user, $password)
 New-PSDrive -name "X" -PSProvider FileSystem -root \\slrcp223\SMS_PCI -credential $credential -Persist
 
@@ -265,63 +258,63 @@ C:\windows\ccm\CcmEval.exe /run
 $clientPath = "C:\Windows\CCM\CcmExec.exe"
 if ( Test-Path $clientPath ){
     $message = "Found CcmExec.exe. SCCM installed."
-    Append-HealthLog -path $healthLogPath -message $message -writeHost -color Green -return
+    Append-HealthLog -path $healthLogPath -message $message -writeHost -color Green
 } Else {
 	$message = "Cannot find CcmExec.exe. SCCM Client is not installed."
-    Append-HealthLog -path $healthLogPath -message $message -writeHost -color Yellow -return
+    Append-HealthLog -path $healthLogPath -message $message -writeHost -color Yellow
 }
 				
 # Check if SCCM Client Service is running
 $service = Get-Service -Name CcmExec -ErrorAction SilentlyContinue
 if ( $service.Status -eq 'Running' ){
     $message = "Found CcmExec service and it is running."
-    Append-HealthLog -path $healthLogPath -message $message -writeHost -color Green -return
+    Append-HealthLog -path $healthLogPath -message $message -writeHost -color Green
 } Elseif ( $service.Status -ne 'Running' ) {
     $message = "Found CcmExec service but it is NOT running."
-    Append-HealthLog -path $healthLogPath -message $message -writeHost -color Yellow -return
+    Append-HealthLog -path $healthLogPath -message $message -writeHost -color Yellow
 } Else {
     $message = "CcmExec service could not be found. SCCM Client may not be installed."
-    Append-HealthLog -path $healthLogPath -message $message -writeHost -color Yellow -return
+    Append-HealthLog -path $healthLogPath -message $message -writeHost -color Yellow
 }
 
 # Check Client Version
 $smsClient = Get-WmiObject -Namespace "root\ccm" -Class SMS_Client -ErrorAction SilentlyContinue
 if ( $smsClient.ClientVersion ) {
     $message = "SCCM Client Version: $( $smsClient.ClientVersion )"
-    Append-HealthLog -path $healthLogPath -message $message -writeHost -color Green -return
+    Append-HealthLog -path $healthLogPath -message $message -writeHost -color Green
 } else {
     $message = "SMS_Client.ClientVersion class not found. SCCM Client may not be installed."
-    Append-HealthLog -path $healthLogPath -message $message -writeHost -color Yellow -return
+    Append-HealthLog -path $healthLogPath -message $message -writeHost -color Yellow
 }    
 
 # Check Management Point Communication
 $mp = Get-WmiObject -Namespace "root\ccm" -Class SMS_Authority -ErrorAction SilentlyContinue
 if ( $mp.Name ) {
     $message = "SCCM Site found: $( $MP.Name )"
-    Append-HealthLog -path $healthLogPath -message $message -writeHost -color Green -return
+    Append-HealthLog -path $healthLogPath -message $message -writeHost -color Green
 } else {
     $message = "SMS_Authority.Name property not found. SCCM Client may not be installed."
-    Append-HealthLog -path $healthLogPath -message $message -writeHost -color Yellow -return
+    Append-HealthLog -path $healthLogPath -message $message -writeHost -color Yellow
 }
 
 # Check Client ID
 $ccmClient = Get-WmiObject -Namespace "root\ccm" -Class CCM_Client -ErrorAction SilentlyContinue
 if ( $ccmClient.ClientId ) {
     $message = "SCCM Client Client ID found: $( $ccmClient.ClientId )"
-    Append-HealthLog -path $healthLogPath -message $message -writeHost -color Green -return
+    Append-HealthLog -path $healthLogPath -message $message -writeHost -color Green
 } else {
     $message = "CCM_Client.ClientId property not found. SCCM Client may not be installed."
-    Append-HealthLog -path $healthLogPath -message $message -writeHost -color Yellow -return
+    Append-HealthLog -path $healthLogPath -message $message -writeHost -color Yellow
 }   
     
 # Check Management Point Communication
 $mp = Get-WmiObject -Namespace "root\ccm" -Class SMS_Authority -ErrorAction SilentlyContinue
 if ( $mp.CurrentManagementPoint ) {
     $message = "SCCM Management Point found: $( $mp.CurrentManagementPoint )"
-    Append-HealthLog -path $healthLogPath -message $message -writeHost -color Green -return
+    Append-HealthLog -path $healthLogPath -message $message -writeHost -color Green
 } else {
     $message = "SMS_Authority.CurrentManagementPoint property not found. SCCM Client may not be installed."
-    Append-HealthLog -path $healthLogPath -message $message -writeHost -color Yellow -return
+    Append-HealthLog -path $healthLogPath -message $message -writeHost -color Yellow
 }
 
 $healthLog >> $healthLogPath\HealthCheck.txt
