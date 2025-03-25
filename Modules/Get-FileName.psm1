@@ -2,8 +2,7 @@ Function Get-FileName() {
     [CmdletBinding()]
     param (
         [Parameter(Mandatory)]
-        [string]
-        $initialDirectory
+        [string]$initialDirectory
     )
     
     [System.Reflection.Assembly]::LoadWithPartialName("System.windows.forms") | Out-Null
@@ -14,3 +13,5 @@ Function Get-FileName() {
     $OpenFileDialog.filename
 
 }
+
+Export-ModuleMember Get-FileName
