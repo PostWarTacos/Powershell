@@ -30,7 +30,7 @@ function Append-HealthLog {
     }
 
     if ($PSBoundParameters.ContainsKey('Return')) {
-        return $message
+        $null = return $message
     }
 }
 
