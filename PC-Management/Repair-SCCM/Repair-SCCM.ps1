@@ -250,10 +250,10 @@ foreach ( $key in $keys ){
 # start create ps-drive
 #
 
-$user = "dpos\wurtzmt"
-$password = ConvertTo-SecureString "" -asplaintext -force
-$credential = New-Object System.Management.Automation.PSCredential ($user, $password)
-New-PSDrive -name "X" -PSProvider FileSystem -root \\slrcp223\SMS_PCI -credential $credential -Persist
+# $user = "dpos\wurtzmt"
+# $password = ConvertTo-SecureString "" -asplaintext -force
+# $credential = New-Object System.Management.Automation.PSCredential ($user, $password)
+# New-PSDrive -name "X" -PSProvider FileSystem -root \\slrcp223\SMS_PCI -credential $credential -Persist
 
 #
 # end create ps-drive
@@ -261,8 +261,7 @@ New-PSDrive -name "X" -PSProvider FileSystem -root \\slrcp223\SMS_PCI -credentia
 
 # Reinstall SCCM via \\slrcp223\SMS_PCI\Clientccmsetup.exe
 Write-Host "(Step 7 of 8) Attempting reinstall." -ForegroundColor Cyan
-Copy-Item "X:\Client" "C:\Temp\CCM-Client" -Force -Recurse
-& "C:\Temp\CCM-Client\ccmsetup.exe" /logon SMSSITECODE=PCI # Might need to add switches. In discussion
+& "C:\drivers\ccm\ccmsetup\ccmsetup.exe" /logon SMSSITECODE=PCI # Might need to add switches. In discussion
 $message = "Initiating reinstall."
 Update-HealthLog -path $healthLogPath -message $message -writeHost -color Cyan -return
 
