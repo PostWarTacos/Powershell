@@ -213,7 +213,7 @@ Write-Host "(Step 5 of 8) Deleting all SCCM folders and files." -ForegroundColor
 foreach ( $file in $files ){
     if ( Test-Path $file ){
         $ConfirmPreference = 'None'
-        Remove-Item $file -Recurse -Force
+        Remove-Item $file -Recurse -Force -ErrorAction SilentlyContinue
         $message = "$file found and removed. Continuing."
         Update-HealthLog -path $healthLogPath -message $message -writeHost -color Green -return
     } else{
@@ -237,7 +237,7 @@ $keys= @(
 )
 foreach ( $key in $keys ){
     if( Test-Path $KEY ){
-        Remove-Item $KEY -Recurse -Force
+        Remove-Item $KEY -Recurse -Force -ErrorAction SilentlyContinue
         $message = "$KEY found and removed. Continuing."
         Update-HealthLog -path $healthLogPath -message $message -writeHost -color Green -return
     } Else { 
