@@ -261,9 +261,18 @@ foreach ( $key in $keys ){
 
 # Reinstall SCCM via \\slrcp223\SMS_PCI\Clientccmsetup.exe
 Write-Host "(Step 7 of 8) Attempting reinstall." -ForegroundColor Cyan
-& "C:\drivers\ccm\ccmsetup\ccmsetup.exe" /logon SMSSITECODE=PCI # Might need to add switches. In discussion
 $message = "Initiating reinstall."
 Update-HealthLog -path $healthLogPath -message $message -writeHost -color Cyan -return
+Start-Process -FilePath "C:\drivers\ccm\ccmsetup\ccmsetup.exe" -ArgumentList "/logon SMSSITECODE=PCI" -Wait # Might need to add switches. In discussion
+
+while ( -not ( Get-Service "ccmexec" -ErrorAction SilentlyContinue )) {
+    Start-Sleep -Seconds 30
+}
+
+while ( (Get-Service "ccmexec").Status -ne "Running") {
+    Start-Sleep -Seconds 30
+}
+
 
 #=================
 # RUN HEALTH CHECK
