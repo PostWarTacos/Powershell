@@ -272,7 +272,7 @@ while ( -not ( Get-Service "ccmexec" -ErrorAction SilentlyContinue )) {
 
 while ( (Get-Service "ccmexec").Status -ne "Running") {
     Start-Sleep -Seconds 30
-    Update-HealthLog -path $healthLogPath -message "Waiting for service to be installed." -writeHost
+    Update-HealthLog -path $healthLogPath -message "Waiting for service to show running." -writeHost
 }
 
 
