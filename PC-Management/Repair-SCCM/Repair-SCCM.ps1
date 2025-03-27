@@ -263,16 +263,16 @@ foreach ( $key in $keys ){
 Write-Host "(Step 7 of 8) Attempting reinstall." -ForegroundColor Cyan
 $message = "Initiating reinstall."
 Update-HealthLog -path $healthLogPath -message $message -writeHost -color Cyan -return
-Start-Process -FilePath "C:\drivers\ccm\ccmsetup\ccmsetup.exe" -ArgumentList "/logon SMSSITECODE=PCI" -Wait # Might need to add switches. In discussion
+Start-Process -FilePath "C:\drivers\ccm\ccmsetup\ccmsetup.exe" -ArgumentList "/logon SMSSITECODE=PCI" # Might need to add switches. In discussion
 
+Update-HealthLog -path $healthLogPath -message "Waiting for service to be installed." -writeHost
 while ( -not ( Get-Service "ccmexec" -ErrorAction SilentlyContinue )) {
-    Update-HealthLog -path $healthLogPath -message "Waiting for service to be installed." -writeHost
-    Start-Sleep -Seconds 30
+    Start-Sleep -Seconds 120
 }
 
+Update-HealthLog -path $healthLogPath -message "Waiting for service to show running." -writeHost
 while ( (Get-Service "ccmexec").Status -ne "Running") {
-    Update-HealthLog -path $healthLogPath -message "Waiting for service to show running." -writeHost
-    Start-Sleep -Seconds 30
+    Start-Sleep -Seconds 120
 }
 
 
