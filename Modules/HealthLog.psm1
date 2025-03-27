@@ -2,35 +2,35 @@ function Append-HealthLog {
     [CmdletBinding()]
     param (
         [Parameter(Mandatory)]
-        [string]$path,
+        [string]$Path,
 
         [Parameter(Mandatory)]
-        [string]$message,
+        [string]$Message,
 
         [Parameter()]
-        [switch]$writeHost,
+        [switch]$WriteHost,
 
         [Parameter()]
-        [string]$color,
+        [string]$Color,
 
         [Parameter()]
-        [switch]$return
+        [switch]$Return
     )
 
     $healthLog = [System.Collections.ArrayList]@()
 
-    $healthLog.Add("[$(Get-Date -Format 'dd-MMM-yy HH:mm:ss')] Message: $message") | Out-Null
+    $healthLog.Add("[$(Get-Date -Format 'dd-MMM-yy HH:mm:ss')] Message: $Message") | Out-Null
 
     if ($PSBoundParameters.ContainsKey('WriteHost')) {
         if ($PSBoundParameters.ContainsKey('Color')) {
-            Write-Host $message -ForegroundColor $color
+            Write-Host $Message -ForegroundColor $Color
         } else {
-            Write-Host $message
+            Write-Host $Message
         }
     }
 
     if ($PSBoundParameters.ContainsKey('Return')) {
-        $null = return $message
+        $null = return $Message
     }
 }
 

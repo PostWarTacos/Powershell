@@ -2,16 +2,16 @@ function Invoke-Script(){
     [CmdletBinding()]
     param (
         [Parameter(Mandatory)]
-        [String]$computerName,
+        [String]$ComputerName,
         
         [Parameter(Mandatory)]
-        [String]$filePath
+        [String]$FilePath
     )
 
-    $session = New-PSSession -ComputerName $computerName
+    $session = New-PSSession -ComputerName $ComputerName
 
     # Execute it remotely
-    Invoke-Command -Session $session -FilePath $filePath
+    Invoke-Command -Session $session -FilePath $FilePath
 
     # Clean up session
     Remove-PSSession $session
