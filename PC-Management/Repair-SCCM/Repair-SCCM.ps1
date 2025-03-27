@@ -266,13 +266,13 @@ Update-HealthLog -path $healthLogPath -message $message -writeHost -color Cyan -
 Start-Process -FilePath "C:\drivers\ccm\ccmsetup\ccmsetup.exe" -ArgumentList "/logon SMSSITECODE=PCI" -Wait # Might need to add switches. In discussion
 
 while ( -not ( Get-Service "ccmexec" -ErrorAction SilentlyContinue )) {
-    Start-Sleep -Seconds 30
     Update-HealthLog -path $healthLogPath -message "Waiting for service to be installed." -writeHost
+    Start-Sleep -Seconds 30
 }
 
 while ( (Get-Service "ccmexec").Status -ne "Running") {
-    Start-Sleep -Seconds 30
     Update-HealthLog -path $healthLogPath -message "Waiting for service to show running." -writeHost
+    Start-Sleep -Seconds 30
 }
 
 
