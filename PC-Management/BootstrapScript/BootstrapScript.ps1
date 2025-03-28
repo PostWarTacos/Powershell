@@ -990,13 +990,13 @@ function Set-UIResponseTweaks { # Set mouse hover and delay to be MUCH shorter t
 function Disable-Telemetry{ # Disables all telemetry from various sources
     Write-Host "Starting Disable-Telemetry" -ForegroundColor Yellow
     # Fix "Managed by your organization" in Edge
-    If (Test-Path "HKLM:\SOFTWARE\Policies\Microsoft\Edge") {
+    If ( Test-Path "HKLM:\SOFTWARE\Policies\Microsoft\Edge" ) {
         Remove-Item -Path "HKLM:\SOFTWARE\Policies\Microsoft\Edge" -Recurse -ErrorAction SilentlyContinue
     }
 
     # Disable Windows telemetry logs
     $autoLoggerDir = "$env:PROGRAMDATA\Microsoft\Diagnosis\ETLLogs\AutoLogger"
-    If (Test-Path "$autoLoggerDir\AutoLogger-Diagtrack-Listener.etl") {
+    If ( Test-Path "$autoLoggerDir\AutoLogger-Diagtrack-Listener.etl" ) {
         Remove-Item "$autoLoggerDir\AutoLogger-Diagtrack-Listener.etl"
     }
     icacls $autoLoggerDir /deny SYSTEM:`(OI`)`(CI`)F | Out-Null
@@ -1014,7 +1014,7 @@ function Disable-Telemetry{ # Disables all telemetry from various sources
         "HKLM:\SOFTWARE\Policies\Microsoft\Windows\DataCollection"
     )
     foreach ($key in $telemetryKeys) {
-        If (!(Test-Path $key)) { New-Item -Path $key -Force | Out-Null }
+        If ( -not ( Test-Path $key )) { New-Item -Path $key -Force | Out-Null }
         Set-ItemProperty -Path $key -Name "AllowTelemetry" -Type DWord -Value 0 -Force
     }
 
@@ -1030,10 +1030,10 @@ function Disable-Telemetry{ # Disables all telemetry from various sources
     $hostsFile = "$env:SystemRoot\System32\drivers\etc\hosts"
     $plannedAdditions = [System.Collections.ArrayList]::new()
     
-    foreach ($telemetryHost in $telemetryHosts) {
+    foreach ( $telemetryHost in $telemetryHosts ) {
         # Ensure the entry doesn't already exist before adding it
-        if (!(Select-String -Path $hostsFile -Pattern "\s+$telemetryHost$" -Quiet)) {
-            $plannedAdditions.Add("`n0.0.0.0 $telemetryHost") | Out-Null
+        if ( -not ( Select-String -Path $hostsFile -Pattern "\s+$telemetryHost$" -Quiet )) {
+            $plannedAdditions.Add( "`n0.0.0.0 $telemetryHost" ) | Out-Null
         }
     }
 
@@ -1044,8 +1044,8 @@ function Disable-Telemetry{ # Disables all telemetry from various sources
         "HKLM:\SOFTWARE\Policies\Microsoft\Windows\Windows Search",
         "HKCU:\SOFTWARE\Microsoft\Windows\CurrentVersion\Search"
     )
-    foreach ($key in $cortanaKeys) {
-        If (!(Test-Path $key)) { New-Item -Path $key -Force | Out-Null }
+    foreach ( $key in $cortanaKeys ) {
+        If ( -not ( Test-Path $key )) { New-Item -Path $key -Force | Out-Null }
         Set-ItemProperty -Path $key -Name "AllowCortana" -Type DWord -Value 0 -Force
     }
 
@@ -1057,8 +1057,8 @@ function Disable-Telemetry{ # Disables all telemetry from various sources
         "HKLM:\SOFTWARE\Policies\Microsoft\SQMClient\Windows",
         "HKLM:\SOFTWARE\Microsoft\SQMClient\Windows"
     )
-    foreach ($key in $ceipKeys) {
-        If (!(Test-Path $key)) { New-Item -Path $key -Force | Out-Null }
+    foreach ( $key in $ceipKeys ) {
+        If ( -not ( Test-Path $key )) { New-Item -Path $key -Force | Out-Null }
         Set-ItemProperty -Path $key -Name "CEIPEnable" -Type DWord -Value 0 -Force
     }
 
@@ -1068,7 +1068,7 @@ function Disable-Telemetry{ # Disables all telemetry from various sources
 
 function Optimize-SvcHost{ # Group svchost.exe processes for better performance
     Write-Host "Starting Optimize-SvcHost" -ForegroundColor Yellow
-    $ram = (Get-CimInstance -ClassName Win32_PhysicalMemory | Measure-Object -Property Capacity -Sum).Sum / 1kb
+    $ram = ( Get-CimInstance -ClassName Win32_PhysicalMemory | Measure-Object -Property Capacity -Sum ).Sum / 1kb
     Set-ItemProperty -Path "HKLM:\SYSTEM\CurrentControlSet\Control" -Name "SvcHostSplitThresholdInKB" -Type DWord -Value $ram -Force
 }
 
