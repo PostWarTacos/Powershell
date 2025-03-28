@@ -1,25 +1,25 @@
-#
-# Create coding directory
-#
+#---------------------------------Create Coding Directory---------------------------------#
+
 If ( whoami -like "*wurtzmt*" ){
     $user = "C:\users\wurtzmt"
-}
+} 
 Else {
-    $user = $env:USERPROFILE
+    $user = [System.Environment]::GetFolderPath("UserProfile")
 }
 
 If ( -not ( Test-Path "$user\Documents\Coding" )){
     mkdir "$user\Documents\Coding"
 }
 
+#---------------------------------PowerShell Profile Auto Git Sync---------------------------------#
 
-#
-# PowerShell Profile Auto Git Sync
-#
 $repoURL = "https://github.com/PostWarTacos/PowerShell.git"
-$clonePath = "$user\Documents\Coding\Powershell"
+$clonePath = "$user\Documents\Coding\PowerShell"
 
 function Sync-GitProfile {
+    If ( -not ( Test-Path "$clonePath" )){
+        mkdir "$clonePath"
+    }
     if ( -not ( Test-Path "$clonePath\.git" )) {
         Write-Host "Initializing Git Repository..."
         Set-Location $clonePath
@@ -37,26 +37,24 @@ function Sync-GitProfile {
 # Run Sync-GitProfile automatically when PowerShell starts
 Sync-GitProfile
 
-#
-# Main Profile
-#
+#---------------------------------Main Profile---------------------------------#
 
 # Test if machine is a server. Don't run these commands if it is
 # Product type 1 = Workstation. 2 = Domain controller. 3 = non-DC server.
 if (( Get-WmiObject -class win32_OperatingSystem ).ProductType -eq 1 ) {
     # Download configs and apply locally
 	# oh-my-posh
-    If ( gcm oh-my-posh ){
+    If ( Get-Command oh-my-posh ){
 		Invoke-WebRequest "https://raw.githubusercontent.com/PostWarTacos/Powershell/refs/heads/main/PowerShell%20Profile/uew.json"`
-			-OutFile "$env:USERPROFILE\Documents\Coding\PowerShell\PowerShellProfile\uew.json"
-		oh-my-posh init pwsh --config "$env:USERPROFILE\Documents\Coding\PowerShell\PowerShellProfile\uew.json" | Invoke-Expression
+			-OutFile "$user\Documents\Coding\PowerShell\PowerShellProfile\uew.json"
+		oh-my-posh init pwsh --config "$user\Documents\Coding\PowerShell\PowerShellProfile\uew.json" | Invoke-Expression
 	}
 	
     # WinFetch
-    if ( gcm WinFetch ){
+    if ( Get-Command WinFetch ){
 		Invoke-WebRequest "https://raw.githubusercontent.com/PostWarTacos/Powershell/refs/heads/main/PowerShell%20Profile/WinFetch/CustomConfig.ps1"`
-			-OutFile "$env:USERPROFILE\.config\winfetch\Config.ps1"
-		winfetch -configpath "$env:USERPROFILE\.config\winfetch\Config.ps1"
+			-OutFile "$user\.config\winfetch\Config.ps1"
+		winfetch -configpath "$user\.config\winfetch\Config.ps1"
 		winfetch
 	}
 	
@@ -70,14 +68,12 @@ if (( Get-WmiObject -class win32_OperatingSystem ).ProductType -eq 1 ) {
     }
 }
 
-#
-# Linux-like Commands
-#
+#---------------------------------Linux-like Commands---------------------------------#
 
 # grep
 function grep($regex, $dir) {
     if ( $dir ) {
-            ls $dir | select-string $regex
+            Get-ChildItem $dir | select-string $regex
             return
     }
     $input | select-string $regex
@@ -85,11 +81,22 @@ function grep($regex, $dir) {
 
 # find-file
 function find-file($name) {
-    ls -recurse -filter "*${name}*" -ErrorAction SilentlyContinue | foreach {
+    Get-ChildItem -recurse -filter "*${name}*" -ErrorAction SilentlyContinue | ForEach-Object {
             $place_path = $_.directory
-            echo "${place_path}\${_}"
+            Write-Output "${place_path}\${_}"
     }
 }
+
+#---------------------------------Import PSModules---------------------------------#
+
+If ( Test-Path $clonePath\Modules ){
+    $modules = Get-ChildItem $clonePath\Modules
+    foreach ( $module in $modules ){
+        Import-Module $module.fullname
+    }
+}
+
+#---------------------------------PSReadLineOptions---------------------------------#
 
 # Searching for commands with up/down arrow is really handy.  The
 # option "moves to end" is useful if you want the cursor at the end
@@ -180,10 +187,8 @@ Set-PSReadLineKeyHandler -Key RightArrow `
     }
 }
 
+#---------------------------------Transcript---------------------------------#
 
-#
-# Transcript
-#
 If ( -not ( Test-Path "$user\Documents\Coding\PowerShell\Transcripts" )){
 	mkdir "$user\Documents\Coding\PowerShell\Transcripts"
 }

@@ -63,7 +63,6 @@ function Install { # Universal winget function
 function Install-Winfetch { # Download and install WinFetch. Not available in winget
     winget install --id=Microsoft.NuGet  -e
     Install-Script winfetch -Force
-
 }
 
 function Install-DoDCerts { # Download and install DoD Certs.
