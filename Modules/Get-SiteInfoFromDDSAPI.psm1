@@ -3,7 +3,7 @@
     param (
         # --- Set 1 ---
         [Parameter(ParameterSetName = 'ByHostname', Mandatory = $true)]
-        [switch]$Hostname,
+        [string]$Hostname,
         
         # --- Set 2 ---
         [Parameter(ParameterSetName = 'ByStore', Mandatory = $true)]
@@ -32,7 +32,7 @@
         }
     }
 
-    $result | Select-Object StoreNumber, SiteCode, Region, Timezone, Manager
+    $result | Select-Object StoreNumber, SiteCode, division, storetype, Timezone
 }
 
 Export-ModuleMember Get-SiteInfoFromDDSAPI
