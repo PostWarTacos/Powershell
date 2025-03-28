@@ -246,19 +246,6 @@ foreach ( $key in $keys ){
     }
 }
 
-#
-# start create ps-drive
-#
-
-# $user = "dpos\wurtzmt"
-# $password = ConvertTo-SecureString "" -asplaintext -force
-# $credential = New-Object System.Management.Automation.PSCredential ($user, $password)
-# New-PSDrive -name "X" -PSProvider FileSystem -root \\slrcp223\SMS_PCI -credential $credential -Persist
-
-#
-# end create ps-drive
-#
-
 # Reinstall SCCM via \\slrcp223\SMS_PCI\Clientccmsetup.exe
 Write-Host "(Step 7 of 8) Attempting reinstall." -ForegroundColor Cyan
 $message = "Initiating reinstall."
