@@ -1,4 +1,4 @@
-﻿Function Get-FileName() {
+﻿Function Get-SiteInfoFromDDSAPI() {
     [CmdletBinding(DefaultParameterSetName = 'ByHostname')]
     param (
         # --- Set 1 ---
@@ -34,3 +34,5 @@
 
     $result | Select-Object StoreNumber, SiteCode, Region, Timezone, Manager
 }
+
+Export-ModuleMember Get-SiteInfoFromDDSAPI
