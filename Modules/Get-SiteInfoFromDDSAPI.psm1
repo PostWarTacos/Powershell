@@ -3,7 +3,7 @@
     param (
         # --- Set 1 ---
         [Parameter(ParameterSetName = 'ByHostname', Mandatory = $true)]
-        [switch]$UseLocalHostname,
+        [switch]$Hostname,
         
         # --- Set 2 ---
         [Parameter(ParameterSetName = 'ByStore', Mandatory = $true)]
@@ -21,8 +21,8 @@
 
     switch ($PSCmdlet.ParameterSetName) {
         'ByHostname' {
-            $siteCode = $(hostname).substring(1,4)
-            $result = $db | Where-Object SiteCode -eq $siteCode
+            $localCode = $($Hostname).substring(1,4)
+            $result = $db | Where-Object SiteCode -eq $localCode
         }
         'ByStore' {
             $result = $db | Where-Object StoreNumber -eq $StoreNumber
