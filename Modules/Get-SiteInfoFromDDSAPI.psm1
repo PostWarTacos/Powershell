@@ -32,7 +32,7 @@
         }
     }
 
-    $result | Select-Object StoreNumber, SiteCode, division, storetype, Timezone
+    $result | Select-Object StoreNumber, SiteCode, Division, StoreType, Timezone
 }
 
 Export-ModuleMember Get-SiteInfoFromDDSAPI
