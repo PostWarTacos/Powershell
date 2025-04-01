@@ -1,12 +1,12 @@
 ﻿Function Compare-Dirs() {
-        [CmdletBinding()]
-        param (
-            [Parameter(Mandatory)]
-            [string]$Source,
+    [CmdletBinding()]
+    param (
+        [Parameter(Mandatory)]
+        [string]$Source,
 
-            [Parameter(Mandatory)]
-            [string]$Destination
-        )   
+        [Parameter(Mandatory)]
+        [string]$Destination
+    )   
 
     function Copy-LatestFile{
         Param( $file1, $file2, [switch]$whatif )
@@ -35,10 +35,10 @@
 
     # Getting folders and Files
     $srcFolders = Get-ChildItem $source -Recurse -Force -Directory
-    $desFolders = Get-ChildItem $destination -Recurse -Force -Directory
+    $destFolders = Get-ChildItem $destination -Recurse -Force -Directory
 
     $srcFiles = Get-ChildItem $source -Recurse -Force File
-    $desFiles = Get-ChildItem $destination -Recurse -Force -File
+    $destFiles = Get-ChildItem $destination -Recurse -Force -File
 
     # Checking for Folders that are in Source, but not in Destination
     foreach( $folder in $srcFolders ) {
@@ -51,7 +51,7 @@
     }
 
     # Checking for Folders that are in Destinatino, but not in Source
-    foreach( $folder in $destfolders ) {
+    foreach( $folder in $destFolders ) {
         $destFolderPath = $destination -replace "\\","\\" -replace "\:","\:"
         $srcFolderPath = $folder.Fullname -replace $destFolderPath,$source
         if( -not ( test-path $srcFolderPath )) {
@@ -66,7 +66,7 @@
         $srcName = $entry.Name
         $srcFilePath = $source -replace "\\","\\" -replace "\:","\:"
         $destFullName = $srcFullName -replace $srcFilePath,$destination
-        if( test-Path $destfile ) {
+        if( test-Path $destFullName ) {
             $srcMD5 = Get-FileHash $srcFullName -Algorithm MD5
             $destMD5 = Get-FileHash $destFullName -Algorithm MD5
             If( Compare-Object $srcMD5 $destMD5 ) {
@@ -86,10 +86,10 @@
     # Checking for Files that are in the Destinatino, but not in Source
     foreach($entry in $destFiles)
     {
-        $desFullname = $entry.fullname
+        $destFullName = $entry.fullname
         $destName = $entry.Name
         $destFilePath = $destination -replace "\\","\\" -replace "\:","\:"
-        $srcFullName = $destFullName -replace $desFilePath,$source
+        $srcFullName = $destFullName -replace $destFilePath,$source
         if( -not ( test-Path $srcFullName ))
         {
             Write-Host "$srcFullName Missing... Copying from $destFullName"
