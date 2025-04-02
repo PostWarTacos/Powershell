@@ -10,7 +10,7 @@ function Find-ADSIObject {
     )
 
     # Map LDAP filters for each type
-    switch ($Type) {
+    switch ( $Type ) {
         "Computer" {
             $filter = "(&(objectClass=computer)(sAMAccountName=$Name`$))"
         }
@@ -28,7 +28,7 @@ function Find-ADSIObject {
     $searcher = [ADSISearcher]::new($filter)
     $result = $searcher.FindOne()
 
-    if ($result -and $result.Properties["adspath"]) {
+    if ( $result -and $result.Properties["adspath"] ) {
         return [ADSI]$result.Properties["adspath"][0]
     } else {
         Write-Warning "$Type '$Name' not found in AD."
