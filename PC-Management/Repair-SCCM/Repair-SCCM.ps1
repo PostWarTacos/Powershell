@@ -134,6 +134,27 @@ function Test-DirsMatch {
     }
 }
 
+function Find-ADSIObject {
+    [CmdletBinding()]
+    param (
+        [Parameter(Mandatory)]
+        [string]$Name
+    )
+
+    # Map LDAP filter
+    $filter = "(&(objectClass=computer)(sAMAccountName=$Name`$))"
+
+    $searcher = [ADSISearcher]::new($filter)
+    $result = $searcher.FindOne()
+
+    if ( $result -and $result.Properties["adspath"] ) {
+        return [ADSI]$result.Properties["adspath"][0]
+    } else {
+        Write-Warning "'$Name' not found in AD."
+        return $null
+    }
+}
+
 #-------------------CREATE DIRECTORIES--------------------#
 
 # Check for directory for ccm logs used in this script
@@ -145,12 +166,15 @@ if ( -not ( Test-Path $healthLogPath )) {
 # Check for directory used to install CCM
 $localInstallerPath = "C:\drivers\ccm\ccmsetup"
 $serverInstallerPath = "\\slrcp223\SMS_PCI\Client"
-
 $updatedInstaller = Test-DirsMatch -PathA $serverInstallerPath -PathB $localInstallerPath
 
 if ( -not ( $updatedInstaller )) {
     $message = "$localInstallerPath doesn't contain the requesite files"
     Update-HealthLog -path $healthLogPath -message $message -writeHost -color Red
+    # Add computer to AD security group
+    $group = [ADSI]"LDAP://CN=POS_RepairIT,OU=POS_Groups,OU=Managed_e3_POS,DC=DPOS,DC=LOC"
+    $computer =  Find-ADSIObject -type computer -Name $( hostname )
+    $group.Add( $computer.adspath )
     exit
 }
 Else { # Dirs match. Continue with repair.
