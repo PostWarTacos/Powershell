@@ -87,6 +87,7 @@ $ccmEvalLogPath = "C:\Windows\CCM\Logs\CCMEval.log"
 if ( -not ( Test-Path $ccmEvalLogPath )) {
     C:\Windows\ccm\CcmEval.exe /register
     C:\Windows\ccm\CcmEval.exe /run
+    Start-Sleep -Seconds 120
 }
 
 # Get the current date and calculate the date a week ago
@@ -103,7 +104,7 @@ $filteredLogs = Get-Content $ccmEvalLogPath -Raw | Where-Object {
     }
 }
 
-# Searches filtered logs (last week) for the string "fail."
+# Searches filtered logs (last week) for various strings that would point to a likely corrupt client.
 $ccmEvalResults = $filteredLogs | Select-String -CaseSensitive:$false -Pattern `
     "Failed to", `
     "Unable to", `
