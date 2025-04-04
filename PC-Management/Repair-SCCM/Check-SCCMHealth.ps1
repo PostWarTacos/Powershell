@@ -10,7 +10,6 @@
 
 $healthLog = [System.Collections.ArrayList]@()
 $healthLogPath = "C:\drivers\CCM\Logs\"
-$corruption = 0
 
 If( -not ( Test-Path $healthLogPath )) {
     mkdir $healthLogPath
@@ -26,7 +25,7 @@ if ( Test-Path $clientPath ){
     $healthLog.Add( "[$(get-date -Format "dd-MMM-yy HH:mm:ss")] Message: Found CcmExec.exe. SCCM installed." ) | Out-Null
 } Else {
 	$healthLog.Add( "[$(get-date -Format "dd-MMM-yy HH:mm:ss")] Message: Cannot find CcmExec.exe. SCCM Client is not installed." ) | Out-Null
-    $corruption += 1
+    $corruption = "CcmExec.exe missing."
 }
 				
 # Check if SCCM Client Service is running
@@ -35,10 +34,10 @@ if ( $service.Status -eq 'Running' ){
     $healthLog.Add( "[$(get-date -Format "dd-MMM-yy HH:mm:ss")] Message: Found CcmExec service and it is running." ) | Out-Null
 } Elseif ( $service.Status -ne 'Running' ) {
     $healthLog.Add( "[$(get-date -Format "dd-MMM-yy HH:mm:ss")] Message: Found CcmExec service but it is NOT running." ) | Out-Null
-    $corruption += 1
+    $corruption = "CcmExec service not running."
 } Else {
 	$healthLog.Add( "[$(get-date -Format "dd-MMM-yy HH:mm:ss")] Message: CcmExec service could not be found. SCCM Client may not be installed." ) | Out-Null
-    $corruption += 1
+    $corruption = "CcmExec service missing."
 }
 
 # Check Client Version
@@ -47,16 +46,16 @@ if ( $smsClient.ClientVersion ) {
     $healthLog.Add( "[$(get-date -Format "dd-MMM-yy HH:mm:ss")] Message: SCCM Client Version: $( $smsClient.ClientVersion )" ) | Out-Null
 } else {
     $healthLog.Add( "[$(get-date -Format "dd-MMM-yy HH:mm:ss")] Message: SMS_Client.ClientVersion class not found. SCCM Client may not be installed." ) | Out-Null
-    $corruption += 1
+    $corruption = "Client version out of date."
 }    
 
-# Check Management Point Communication
+# Check Site Code
 $mp = Get-WmiObject -Namespace "root\ccm" -Class SMS_Authority -ErrorAction SilentlyContinue
 if ( $mp.Name ) {
     $healthLog.Add( "[$(get-date -Format "dd-MMM-yy HH:mm:ss")] Message: SCCM Site found: $( $MP.Name )" ) | Out-Null
 } else {
     $healthLog.Add( "[$(get-date -Format "dd-MMM-yy HH:mm:ss")] Message: SMS_Authority.Name property not found. SCCM Client may not be installed." ) | Out-Null
-    $corruption += 1
+    $corruption = "Site Code not found."
 }
 
 # Check Client ID
@@ -74,7 +73,7 @@ if ( $mp.CurrentManagementPoint ) {
     $healthLog.Add( "[$(get-date -Format "dd-MMM-yy HH:mm:ss")] Message: SCCM Management Point found: $( $mp.CurrentManagementPoint )" ) | Out-Null
 } else {
     $healthLog.Add( "[$(get-date -Format "dd-MMM-yy HH:mm:ss")] Message: SMS_Authority.CurrentManagementPoint property not found. SCCM Client may not be installed." ) | Out-Null
-    $corruption += 1
+    $corruption = "Failed to contact MP."
 }
 
 #================
@@ -105,7 +104,7 @@ $filteredLogs = Get-Content $ccmEvalLogPath -Raw | Where-Object {
 }
 
 # Searches filtered logs (last week) for various strings that would point to a likely corrupt client.
-$ccmEvalResults = $filteredLogs | Select-String -CaseSensitive:$false -Pattern `
+$ccmEvalResults = $filteredLogs -split '<!' | Select-String -CaseSensitive:$false -Pattern `
     "Failed to", `
     "Unable to", `
     "WMI.*corrupt", `
@@ -116,6 +115,7 @@ $ccmEvalResults = $filteredLogs | Select-String -CaseSensitive:$false -Pattern `
     "Firewall exception", `
     "Exit code: [1-9]", `
     "Error code", `
+    "check: FAILED", `
     "Failed to connect", `
     "Failed to get"
 
@@ -127,7 +127,7 @@ if ( $ccmEvalResults ) {
     }
     # Outputs all fail messages within last week to healthcheck.txt
     $healthLog.Add( "[$(get-date -Format "dd-MMM-yy HH:mm:ss")] Message: $( $ccmEvalResults )." ) | Out-Null
-    $corruption += 1
+    $corruption = "Corruption found in Eval log."
 } else {
     $healthLog.Add( "[$(get-date -Format "dd-MMM-yy HH:mm:ss")] Message: SCCM Client passed health check per CCMEval logs." ) | Out-Null
 }
@@ -136,10 +136,15 @@ if ( $ccmEvalResults ) {
 # REPORT RESULTS
 #===============
 
-if ( $corruption -eq 0 ){
+if ( -not ( $corruption )){
     $results = "Healthy Client"
-} else {
-    $results = "Corrupt Client, $failMsg"
+} else{
+    if( $corruption -and $failMsg ) {
+        $results = "Corrupt Client. $corruption $failMsg."
+    }
+    else {
+        $results = "Corrupt Client. $corruption"
+    }
     Start-ScheduledTask "Repair-SCCMTask" # Comment this line for JUST a health check through CC.
 }
 
