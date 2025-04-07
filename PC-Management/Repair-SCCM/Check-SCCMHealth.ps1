@@ -46,7 +46,7 @@ if ( $smsClient.ClientVersion ) {
     $healthLog.Add( "[$(get-date -Format "dd-MMM-yy HH:mm:ss")] Message: SCCM Client Version: $( $smsClient.ClientVersion )" ) | Out-Null
 } else {
     $healthLog.Add( "[$(get-date -Format "dd-MMM-yy HH:mm:ss")] Message: SMS_Client.ClientVersion class not found. SCCM Client may not be installed." ) | Out-Null
-    $corruption = "Client version out of date."
+    $corruption = "Cannot determine client version."
 }    
 
 # Check Site Code
@@ -64,7 +64,7 @@ if ( $ccmClient.ClientId ) {
     $healthLog.Add( "[$(get-date -Format "dd-MMM-yy HH:mm:ss")] Message: SCCM Client Client ID found: $( $ccmClient.ClientId )" ) | Out-Null
 } else {
     $healthLog.Add( "[$(get-date -Format "dd-MMM-yy HH:mm:ss")] Message: CCM_Client.ClientId property not found. SCCM Client may not be installed." ) | Out-Null
-    $corruption += 1
+    $corruption = "Client ID not found."
 }   
     
 # Check Management Point Communication
@@ -127,7 +127,7 @@ if ( $ccmEvalResults ) {
     }
     # Outputs all fail messages within last week to healthcheck.txt
     $healthLog.Add( "[$(get-date -Format "dd-MMM-yy HH:mm:ss")] Message: $( $ccmEvalResults )." ) | Out-Null
-    $corruption = "Corruption found in Eval log."
+    $corruption = "Corruption in Eval log."
 } else {
     $healthLog.Add( "[$(get-date -Format "dd-MMM-yy HH:mm:ss")] Message: SCCM Client passed health check per CCMEval logs." ) | Out-Null
 }
@@ -140,7 +140,7 @@ if ( -not ( $corruption )){
     $results = "Healthy Client"
 } else{
     if( $corruption -and $failMsg ) {
-        $results = "Corrupt Client. $corruption $failMsg."
+        $results = "$corruption $failMsg."
     }
     else {
         $results = "Corrupt Client. $corruption"
