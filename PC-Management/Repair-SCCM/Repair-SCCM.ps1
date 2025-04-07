@@ -173,7 +173,7 @@ if ( -not ( $updatedInstaller )) {
     Update-HealthLog -path $healthLogPath -message $message -writeHost -color Red
     # Add computer to AD security group
     $group = [ADSI]"LDAP://CN=POS_RepairIT,OU=POS_Groups,OU=Managed_e3_POS,DC=DPOS,DC=LOC"
-    $computer =  Find-ADSIObject -type computer -Name $( hostname )
+    $computer =  Find-ADSIObject -Name $( hostname )
     $group.Add( $computer.adspath )
     exit
 }
