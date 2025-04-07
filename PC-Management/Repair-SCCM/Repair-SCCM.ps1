@@ -222,6 +222,7 @@ if ( $found ){
     if ( $success ) {
         $message = "Service restarted successfully and MP contacted. Assuming resolved, ending script."
         Update-HealthLog -path $healthLogPath -message $message -writeHost -color Green -return
+        exit
     } else {
         $message = "Failed to start service. Continuing with SCCM Client repair."
         Update-HealthLog -path $healthLogPath -message $message -writeHost -color Yellow -return
