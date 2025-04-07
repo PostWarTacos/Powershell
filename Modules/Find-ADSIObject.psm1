@@ -35,3 +35,5 @@ function Find-ADSIObject {
         return $null
     }
 }
+
+Export-ModuleMember Find-ADSIObject

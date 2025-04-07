@@ -25,3 +25,5 @@ function Measure-CommandClean {
         Remove-Item -Path $tempRoot -Recurse -Force -ErrorAction SilentlyContinue
     }
 }
+
+Export-ModuleMember Measure-CommandClean

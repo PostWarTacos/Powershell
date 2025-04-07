@@ -97,3 +97,5 @@
         }
     }
 }
+
+Export-ModuleMember Compare-Dirs
