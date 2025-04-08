@@ -89,8 +89,6 @@ function Update-HealthLog {
         [switch]$Return
     )
 
-    $healthLog = [System.Collections.ArrayList]@()
-
     $healthLog.Add("[$(Get-Date -Format 'dd-MMM-yy HH:mm:ss')] Message: $message") | Out-Null
 
     if ( $PSBoundParameters.ContainsKey('WriteHost') -and $PSBoundParameters.ContainsKey('Color') ) {
@@ -154,6 +152,8 @@ function Find-ADSIObject {
         return $null
     }
 }
+
+$healthLog = [System.Collections.ArrayList]@()
 
 #-------------------CREATE DIRECTORIES--------------------#
 
