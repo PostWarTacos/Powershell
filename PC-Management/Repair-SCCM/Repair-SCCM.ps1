@@ -163,9 +163,12 @@ if ( -not ( Test-Path $healthLogPath )) {
     mkdir $healthLogPath | Out-Null
 }
 
+
 # Check for directory used to install CCM
 $localInstallerPath = "C:\drivers\ccm\ccmsetup"
 $serverInstallerPath = "\\slrcp223\SMS_PCI\Client"
+
+<#
 $updatedInstaller = Test-DirsMatch -PathA $serverInstallerPath -PathB $localInstallerPath
 
 if ( -not ( $updatedInstaller )) {
@@ -181,7 +184,7 @@ Else { # Dirs match. Continue with repair.
     $message = "$localInstallerPath contains requesite files. Continuing install."
     Update-HealthLog -path $healthLogPath -message $message -writeHost -color Green
 }
-
+#>
 
 #-------------------MAIN SCRIPT--------------------#
 
@@ -237,7 +240,7 @@ Write-Host "(Step 2 of 8) Performing complete clean uninstall." -ForegroundColor
 if ( Test-Path C:\Windows\ccmsetup\ccmsetup.exe ){
     $message = "Ccmsetup.exe uninstalled. Continuing."
     Update-HealthLog -path $healthLogPath -message $message -writeHost -color Green -return
-    Start-Process -FilePath "C:\Windows\ccmsetup\ccmsetup.exe" -ArgumentList "/uninstall" -Wait
+    Start-Process -FilePath "C:\Windows\ccmsetup\ccmsetup.exe" -ArgumentList "/uninstall" -Wait -Verbose
 } else {
     $message = "Ccmsetup.exe not found. Continuing."
     Update-HealthLog -path $healthLogPath -message $message -writeHost -color Yellow -return
@@ -321,11 +324,16 @@ foreach ( $key in $keys ){
 
 # Reinstall SCCM via \\slrcp223\SMS_PCI\Clientccmsetup.exe
 Write-Host "(Step 7 of 8) Attempting reinstall." -ForegroundColor Cyan
-$message = "Initiating reinstall."
-Update-HealthLog -path $healthLogPath -message $message -writeHost -color Cyan -return
-Start-Process -FilePath "$localInstallerPath\ccmsetup.exe" -ArgumentList "/logon SMSSITECODE=PCI"
-
-Update-HealthLog -path $healthLogPath -message "Waiting for service to be installed." -writeHost
+try {
+    $message = "Initiating reinstall."
+    Update-HealthLog -path $healthLogPath -message $message -writeHost -color Cyan -return
+    Start-Process -FilePath "$localInstallerPath\ccmsetup.exe" -ArgumentList "/logon SMSSITECODE=PCI"
+    Update-HealthLog -path $healthLogPath -message "Waiting for service to be installed." -writeHost
+}
+Catch{
+    $message = "Install failed."
+    Update-HealthLog -path $healthLogPath -message $message -writeHost -color Red -return
+}
 while ( -not ( Get-Service "ccmexec" -ErrorAction SilentlyContinue )) {
     Start-Sleep -Seconds 120
 }
