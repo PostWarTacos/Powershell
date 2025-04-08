@@ -220,20 +220,24 @@ function Run-HealthCheck {
 # Creates an Arraylist which is mutable and easier to manipulate than an array.
 $healthLog = [System.Collections.ArrayList]@()
 
+# Used in final health check
+$maxAttempts = 5
+$success = $false
+
+# Directories
+$healthLogPath = "C:\drivers\ccm\logs"
+$localInstallerPath = "C:\drivers\ccm\ccmsetup"
+$serverInstallerPath = "\\slrcp223\SMS_PCI\Client"
+
 # ------------------- CREATE DIRECTORIES -------------------- #
 
 # Check for directory for ccm logs used in this script
-$healthLogPath = "C:\drivers\ccm\logs"
 if ( -not ( Test-Path $healthLogPath )) {
     mkdir $healthLogPath | Out-Null
 }
 
-
-# Check for directory used to install CCM
-$localInstallerPath = "C:\drivers\ccm\ccmsetup"
-$serverInstallerPath = "\\slrcp223\SMS_PCI\Client"
-
 <#
+# Check for directory used to install CCM
 $updatedInstaller = Test-DirsMatch -PathA $serverInstallerPath -PathB $localInstallerPath
 
 if ( -not ( $updatedInstaller )) {
@@ -413,11 +417,6 @@ while ( (Get-Service "ccmexec").Status -ne "Running") {
 Write-Host "(Step 8 of 8) Registering CcmEval. Running CcmEval check." -ForegroundColor Cyan
 C:\windows\ccm\CcmEval.exe /register
 C:\windows\ccm\CcmEval.exe /run
-
-# -------------------- VARIABLES FOR HEALTH CHECK -------------------- #
-
-$maxAttempts = 5
-$success = $false
 
 # -------------------- RUN UNTIL ALL PASS OR TIMEOUT -------------------- #
 
