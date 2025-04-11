@@ -4,5 +4,7 @@ function Find-GUID{
         [Parameter()]
         [String]$AppName
     )
-    # HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall
+    Get-ItemProperty HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall\* |
+        Where-Object DisplayName -match $AppName | Select-Object DisplayName, PSChildName, DisplayVersion
+    
 }
