@@ -4,9 +4,18 @@ function Find-GUID{
         [Parameter(Mandatory)]
         [String]$AppName
     )
-    Get-ItemProperty HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall\* |
-        Where-Object DisplayName -match $AppName | Select-Object DisplayName, PSChildName, DisplayVersion
-    
+
+    $appDirs = @(
+        'HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall\*',
+        'HKLM:\SOFTWARE\WOW6432Node\Microsoft\Windows\CurrentVersion\Uninstall\*'
+    )
+
+    foreach ( $dir in $appDirs ){
+        Get-ItemProperty $dir |
+            Where-Object { $_.DisplayName -match $AppName -or $_.Publisher -match $AppName } |
+            Select-Object DisplayName, Publisher, DisplayVersion, PSChildName, UninstallString, @{ Name='path'; Expression={ $_.PSPath -replace '^Microsoft\.PowerShell\.Core\\Registry::', '' }} |
+            Format-List
+    }
 }
 
 Export-ModuleMember Find-GUID
