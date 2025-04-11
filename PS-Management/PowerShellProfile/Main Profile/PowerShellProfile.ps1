@@ -1,6 +1,6 @@
 #---------------------------------Create Coding Directory---------------------------------#
 
-If ( whoami -like "*wurtzmt*" ){
+If ( $(whoami) -like "wurtzmt" ){
     $user = "C:\users\wurtzmt"
 } 
 Else {

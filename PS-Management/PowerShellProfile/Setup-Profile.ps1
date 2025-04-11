@@ -1,4 +1,4 @@
-If ( whoami -like "*wurtzmt*" ){
+If ( $(whoami) -match "wurtzmt" ){
     $user = "C:\users\wurtzmt"
 } 
 Else {
@@ -8,29 +8,42 @@ Else {
 $SharedProfilePath = "$user\Documents\Coding\PowerShell\PS-Management\PowerShellProfile\Main Profile\MinimumProfile.ps1"
 $DotSourceLine = ". '$SharedProfilePath'"
 
+# Ensure Admin Privileges
+if ( -not ( [Security.Principal.WindowsPrincipal] [Security.Principal.WindowsIdentity]::GetCurrent() ).IsInRole( [Security.Principal.WindowsBuiltinRole] "Administrator" )) {
+    Write-Warning "This script must be run as Administrator. Exiting."
+    exit 1
+}
+
+# Build list of all profile paths across versions/hosts
 $AllProfiles = @(
     $PROFILE.AllUsersAllHosts,
     $PROFILE.AllUsersCurrentHost,
     $PROFILE.CurrentUserAllHosts,
-    $PROFILE.CurrentUserCurrentHost
-)
+    $PROFILE.CurrentUserCurrentHost,
+    "$user\Documents\PowerShell\Microsoft.PowerShell_profile.ps1",
+    "$user\Documents\WindowsPowerShell\Microsoft.PowerShellISE_profile.ps1",
+    "$user\Documents\PowerShell\Microsoft.VSCode_profile.ps1"  # optional
+) | Sort-Object -Unique
 
-# Also add ISE specific path
-$ISEProfile = "$user\Documents\WindowsPowerShell\Microsoft.PowerShellISE_profile.ps1"
-if ( -not ( Test-Path $ISEProfile )) { New-Item -ItemType File -Path $ISEProfile -Force }
-$AllProfiles += $ISEProfile
-
-foreach ( $profilePath in $AllProfiles | Sort-Object -Unique ) {
-    if ( -not ( Test-Path $profilePath )) {
-        New-Item -ItemType File -Path $profilePath -Force
+# Step 1: Delete all existing profile files
+foreach ( $profile in $AllProfiles ) {
+    if ( Test-Path $profile ) {
+        try {
+            Remove-Item -Path $profile -Force
+            Write-Host "Deleted existing profile: $profile" -ForegroundColor Yellow
+        } catch {
+            Write-Warning "Could not delete $profile`: $_"
+        }
     }
+}
 
-    $content = Get-Content $profilePath -Raw
-
-    if ( $content -notmatch [regex]::Escape( $DotSourceLine )) {
+# Step 2: Create fresh profile files with dot-source line
+foreach ($profilePath in $AllProfiles) {
+    try {
+        New-Item -ItemType File -Path $profilePath -Force | Out-Null
         Add-Content -Path $profilePath -Value "`n$DotSourceLine"
-        Write-Host "Linked: $profilePath"
-    } else {
-        Write-Host "Already linked: $profilePath"
+        Write-Host "Created new profile and linked shared file: $profilePath" -ForegroundColor Green
+    } catch {
+        Write-Warning "Could not create or write to $profilePath`: $_"
     }
 }
