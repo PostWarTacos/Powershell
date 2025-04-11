@@ -193,4 +193,4 @@ If ( -not ( Test-Path "$user\Documents\Coding\PowerShell\Transcripts" )){
 	mkdir "$user\Documents\Coding\PowerShell\Transcripts"
 }
 
-Start-Transcript -OutputDirectory "$user\Documents\Coding\PowerShell\Transcripts" -NoClobber -IncludeInvocationHeader
+Start-Transcript -OutputDirectory "$user\Documents\Coding\PowerShell\Transcripts" -NoClobber -IncludeInvocationHeader | Out-Null
