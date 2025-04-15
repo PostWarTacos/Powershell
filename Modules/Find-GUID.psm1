@@ -13,7 +13,7 @@ function Find-GUID{
     foreach ( $dir in $appDirs ){
         Get-ItemProperty $dir |
             Where-Object { $_.DisplayName -match $AppName -or $_.Publisher -match $AppName } |
-            Select-Object DisplayName, Publisher, DisplayVersion, PSChildName, UninstallString, @{ Name='path'; Expression={ $_.PSPath -replace '^Microsoft\.PowerShell\.Core\\Registry::', '' }} |
+            Select-Object DisplayName, Publisher, DisplayVersion, PSChildName, UninstallString, @{ Name='Path'; Expression={ $_.PSPath -replace '^Microsoft\.PowerShell\.Core\\Registry::', '' }} |
             Format-List
     }
 }
