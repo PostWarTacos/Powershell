@@ -31,7 +31,8 @@ $shell.Namespace(10).Items() | ForEach-Object { $_.InvokeVerb("Delete") }
 
 # Delete Prefetch Files
 Write-Host "Cleaning Prefetch Files..." -ForegroundColor Yellow
-Remove-Item -Path "C:\Windows\Prefetch\*" -Recurse -Force -ErrorAction SilentlyContinue
+Get-ChildItem "C:\Windows\Prefetch\*" -Recurse | Where-Object CreationTime -lt (get-date).AddDays(-30) |
+    Remove-Item -Force
 
 # Delete Thumbnails
 Write-Host "Clearing Thumbnails Cache..." -ForegroundColor Yellow
@@ -39,7 +40,8 @@ Remove-Item -Path "$env:LOCALAPPDATA\Microsoft\Windows\Explorer\thumbcache_*.db"
 
 # Delete Windows Error Reports
 Write-Host "Removing Old Windows Error Reports..." -ForegroundColor Yellow
-Remove-Item -Path "C:\ProgramData\Microsoft\Windows\WER\*" -Recurse -Force -ErrorAction SilentlyContinue
+Get-ChildItem "C:\ProgramData\Microsoft\Windows\WER\*" -Recurse | Where-Object LastWriteTime -lt (get-date).AddDays(-180) |
+    Remove-Item -Force
 
 # Delete Windows.old if it exists
 if (Test-Path "C:\Windows.old") {
