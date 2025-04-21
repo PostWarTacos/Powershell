@@ -59,8 +59,8 @@ foreach ( $computer in $computers ){
         $storeNumsTable += [PSCustomObject]@{ # ensure blank env:storeNum variables are left out
             ComputerName = $computer
             StoreNumber  = $storeNum
-            URI          = $storeNum + "_corp"
-            Share        = "\\" + $computer + "\" + $storeNum + "_corp"
+            URI          = $computer.Substring(1,4)  + "_corp"
+            Share        = "\\" + $computer + "\" + $computer.Substring(1,4)  + "_corp"
         }
     }
     else{
