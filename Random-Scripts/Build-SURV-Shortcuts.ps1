@@ -9,13 +9,16 @@
 #
 #######################################################################################
 clear
-# Build shortcuts
-$shortcutLocation = "\\corpis\Tempstore\wurtzm\test"
+# Build Variables
+$shortcutLocation = "D:\SurvShortcuts"
+If ( -not ( Test-Path $shortcutLocation )){
+    mkdir $shortcutLocation
+}
 $iconPath = "C:\Windows\System32\imageres.dll,5"
 $pathValid = @()
 
 # Path for CSV of shortcuts failed to create
-$outFile = "C:\Users\wurtzmt-a\Desktop\NoShare.txt"
+$logFile = "D:\SurvShortcuts\NoShare.txt"
 
 # Build arrays and zero variables
 $winrmFailed = @()
@@ -24,44 +27,50 @@ $storeNumBlank = @()
 $i = 1
 
 # Pull list of computer names
-$OUs = "OU=SURV,OU=Shared_Use,OU=Endpoints,DC=dds,DC=dillards,DC=net",
-       "OU=SURV,OU=Shared_Use,OU=Win11,OU=Endpoints,DC=dds,DC=dillards,DC=net",
-       "OU=SURV,OU=Shared_Use,OU=WildWest,OU=Endpoints,DC=dds,DC=dillards,DC=net"
-$computers = foreach ( $OU in $OUs ) {
-    Get-ADComputer -SearchBase $OU -filter * | select -ExpandProperty name
-}
+$OUs = @(
+    "LDAP://OU=SURV,OU=Shared_Use,OU=Endpoints,DC=dds,DC=dillards,DC=net",
+    "LDAP://OU=SURV,OU=Shared_Use,OU=Win11,OU=Endpoints,DC=dds,DC=dillards,DC=net",
+    "LDAP://OU=SURV,OU=Shared_Use,OU=WildWest,OU=Endpoints,DC=dds,DC=dillards,DC=net"
+)
 
+$filter = "(&(objectClass=computer)(sAMAccountName=*))"
+$computers = foreach ($OU in $OUs) {
+    $searcher = [ADSISearcher]::new()
+    $searcher.SearchRoot = [ADSI]$OU
+    $searcher.Filter = $filter
+    $searcher.PropertiesToLoad.Add("name") | Out-Null
 
-# Get StoreNum and build list of WinRM failed
+    $searcher.FindAll() | ForEach-Object {
+        $_.Properties["name"] | Select-Object -First 1
+    }
+}   
+
 foreach ( $computer in $computers ){
-    Write-Host "Pulling info for" $i "of" $computers.count
-    try {
-        # winrm solution
-        #$storeNumPulled = Invoke-Command -ComputerName $computer -ScriptBlock{ (ls env:storeNum -ErrorAction SilentlyContinue).value } -erroraction stop
-        # aduc solution
-        $storeNumPulled = Get-ADComputer $computer -Properties ExtensionAttribute6 | select -ExpandProperty ExtensionAttribute6
-        if ( $storeNumPulled -ne $null -and $storeNumPulled -ne '' ){
-            $storeNumsTable += [PSCustomObject]@{ # ensure blank env:storeNum variables are left out
-                ComputerName = $computer
-                StoreNumber  = $storeNumPulled
-                URI          = $computer.Substring(1,4) + "_corp"
-                Share        = "\\" + $computer + "\" + $computer.Substring(1,4) + "_corp"
-            }
-        }
-        else{
-            $storeNumBlank += "StNum Blank $computer`n" # store blank env:storeNum variables
-        }
-    } catch{
-        $winrmFailed += [PSCustomObject]@{ # store computers failed to connect to
+    $filter = "(&(objectClass=computer)(sAMAccountName=$computer`$))"
+    $searcher = [ADSISearcher]::new()
+    $searcher.Filter = $filter
+    $searcher.PropertiesToLoad.Add("extensionAttribute6") | Out-Null
+    $searcher.PropertiesToLoad.Add("sAMAccountName") | Out-Null
+
+    $result = $searcher.FindOne()
+
+    if ( $result -and $result.Properties["extensionAttribute6"] ){
+        $storeNum = $result.Properties["extensionAttribute6"][0]
+        $storeNumsTable += [PSCustomObject]@{ # ensure blank env:storeNum variables are left out
             ComputerName = $computer
-            StoreNumber  = "Error: $( $computer.Exception.Message )"
+            StoreNumber  = $storeNum
+            URI          = $storeNum + "_corp"
+            Share        = "\\" + $computer + "\" + $storeNum + "_corp"
         }
+    }
+    else{
+        $storeNumBlank += "StNum Blank $computer`n" # store blank env:storeNum variables
     }
     $i++
 }
 
 # Append CSV with computernames unable to pull StNum
-$storeNumBlank >> $outFile
+$storeNumBlank >> $logFile
 
 # Reset counter
 $i = 1
@@ -73,8 +82,8 @@ foreach ( $store in $storeNumsTable ){
         $pathValid += $store
     }
     else{ # Share doesn't exist
-        Write-Host "Failed to create share for" $store.Share -ForegroundColor Cyan
-        "Share doesn't exist $store" >> $outFile
+        Write-Host "Failed to create shortcut for" $store.Share -ForegroundColor Cyan
+        "Share doesn't exist " + $store.share >> $logFile
     }
     $i++
 }
