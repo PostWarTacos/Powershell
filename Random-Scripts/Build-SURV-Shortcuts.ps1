@@ -8,6 +8,25 @@
 #   Date: 1/23/2025
 #
 #######################################################################################
+Function Get-SiteInfoFromDDSAPI() {
+    [CmdletBinding()]
+    param (
+        [Parameter(Mandatory)]
+        [string]$Hostname
+    )
+
+    $uri = "https://ssdcorpappsrvt1.dpos.loc/esper/Device/AllStores"
+    $header = @{"accept" = "text/plain"}
+    $web = Invoke-WebRequest -Uri $uri -Headers $header
+    $db = $web.content | ConvertFrom-Json
+
+    $localCode = $($Hostname).substring(1,4)
+    $result = $db | Where-Object SiteCode -eq $localCode
+
+    $result | Select-Object StoreNumber
+    return $result
+}
+
 clear
 # Build Variables
 $shortcutLocation = "D:\SurvShortcuts"
@@ -59,17 +78,16 @@ foreach ( $computer in $computers ){
     $result = $searcher.FindOne()
 
     # Build custom PS object
-    if ( $result -and $result.Properties["extensionAttribute6"] ){
-        $storeNum = $result.Properties["extensionAttribute6"][0]
-        $storeNumsTable += [PSCustomObject]@{ # ensure blank env:storeNum variables are left out
-            ComputerName = $computer
-            StoreNumber  = $storeNum
-            URI          = $computer.Substring(1,4)  + "_corp"
-            Share        = "\\" + $computer + "\" + $computer.Substring(1,4)  + "_corp"
-        }
+    [string]$storeNum = $result.Properties["extensionAttribute6"][0]
+    If( $storeNum -eq $null -or $storeNum -eq '' ){
+        [string]$storeNum = Get-SiteInfoFromDDSAPI $computer | Select-Object -ExpandProperty StoreNumber -First 1 -ErrorAction SilentlyContinue
+        if ( $storeNum.StartsWith('0')) { $storeNum = $storeNum.Substring(1) }
     }
-    else{
-        $storeNumBlank += "StNum Blank $computer`n" # store blank env:storeNum variables
+    $storeNumsTable += [PSCustomObject]@{ # ensure blank env:storeNum variables are left out
+        ComputerName = $computer
+        StoreNumber  = $storeNum
+        URI          = $computer.Substring(1,4)  + "_corp"
+        Share        = "\\" + $computer + "\" + $computer.Substring(1,4)  + "_corp"
     }
     $i++
 }
