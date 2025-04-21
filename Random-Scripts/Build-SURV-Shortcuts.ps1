@@ -19,6 +19,9 @@ $pathValid = @()
 
 # Path for CSV of shortcuts failed to create
 $logFile = "D:\SurvShortcuts\NoShare.txt"
+If ( Test-Path $logFile ){
+    Remove-Item $logFile -Force
+}
 
 # Build arrays and zero variables
 $winrmFailed = @()
