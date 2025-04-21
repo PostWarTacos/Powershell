@@ -33,27 +33,29 @@ $OUs = @(
     "LDAP://OU=SURV,OU=Shared_Use,OU=WildWest,OU=Endpoints,DC=dds,DC=dillards,DC=net"
 )
 
+Write-Host "Searching SURV OUs for SURV machines." -ForegroundColor Yellow
 $filter = "(&(objectClass=computer)(sAMAccountName=*))"
 $computers = foreach ($OU in $OUs) {
     $searcher = [ADSISearcher]::new()
     $searcher.SearchRoot = [ADSI]$OU
     $searcher.Filter = $filter
     $searcher.PropertiesToLoad.Add("name") | Out-Null
-
     $searcher.FindAll() | ForEach-Object {
         $_.Properties["name"] | Select-Object -First 1
     }
 }   
 
+# Get info on each machine from ADSI
+Write-Host "Getting machine info from ADSI." -ForegroundColor Yellow
 foreach ( $computer in $computers ){
     $filter = "(&(objectClass=computer)(sAMAccountName=$computer`$))"
     $searcher = [ADSISearcher]::new()
     $searcher.Filter = $filter
     $searcher.PropertiesToLoad.Add("extensionAttribute6") | Out-Null
     $searcher.PropertiesToLoad.Add("sAMAccountName") | Out-Null
-
     $result = $searcher.FindOne()
 
+    # Build custom PS object
     if ( $result -and $result.Properties["extensionAttribute6"] ){
         $storeNum = $result.Properties["extensionAttribute6"][0]
         $storeNumsTable += [PSCustomObject]@{ # ensure blank env:storeNum variables are left out
@@ -76,6 +78,7 @@ $storeNumBlank >> $logFile
 $i = 1
 
 # Test-Path on all share locations
+Write-Host "Testing share paths before creating." -ForegroundColor Yellow
 foreach ( $store in $storeNumsTable ){
     Write-host "Testing path $i of" $storeNumsTable.count
     if ( Test-Path $store.Share ){ 
@@ -92,18 +95,16 @@ foreach ( $store in $storeNumsTable ){
 $storeNumsTable = $pathValid
 
 # Duplicate store numbers
+Write-Host "Checking for duplicate store numbers and separating." -ForegroundColor Yellow
 $dupeGroups = $storeNumsTable | group storenumber | where count -gt 1
 
 foreach ( $group in $dupeGroups ){
     $counter = 1
     foreach  ( $store in $group.group ){
         # Construct new name
-        $newName = "{0}_{1:D2}" -f $store.StoreNumber, $counter
-        
+        $newName = "{0}_{1:D2}" -f $store.StoreNumber, $counter      
         # Rename store number
         $store.StoreNumber = $newName
-
-        # Increment counter
         $counter++
     }
 }
@@ -112,7 +113,6 @@ foreach ( $group in $dupeGroups ){
 foreach ($store in $storeNumsTable) {
     $shortcutName = $store.StoreNumber + ".lnk"
     $shortcutPath = Join-Path -Path $shortcutLocation -ChildPath $shortcutName
-
     $WScriptShell = New-Object -ComObject WScript.Shell
     $Shortcut = $WScriptShell.CreateShortcut($shortcutPath)
     $Shortcut.TargetPath = $store.share
