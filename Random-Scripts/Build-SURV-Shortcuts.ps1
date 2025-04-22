@@ -31,7 +31,7 @@ clear
 # Build Variables
 $shortcutLocation = "D:\SurvShortcuts"
 If ( -not ( Test-Path $shortcutLocation )){
-    mkdir $shortcutLocation
+    New-Item -ItemType Directory -Path $shortcutLocation
 }
 $iconPath = "C:\Windows\System32\imageres.dll,5"
 $pathValid = @()
@@ -43,9 +43,7 @@ If ( Test-Path $logFile ){
 }
 
 # Build arrays and zero variables
-$winrmFailed = @()
 $storeNumsTable = @()
-$storeNumBlank = @()
 $i = 1
 
 # Pull list of computer names
@@ -67,6 +65,16 @@ $computers = foreach ($OU in $OUs) {
     }
 }   
 
+# Test Connection to all SURV machines
+foreach ( $computer in $computers ){
+    $alives = if ( Test-Connection -Quiet -Count 2 -ComputerName $computer){
+        Write-Output $computer
+    }
+}
+
+# Overwrite $computers variable with only alive computers
+$computers = $alives
+
 # Get info on each machine from ADSI
 Write-Host "Getting machine info from ADSI." -ForegroundColor Yellow
 foreach ( $computer in $computers ){
@@ -77,9 +85,9 @@ foreach ( $computer in $computers ){
     $searcher.PropertiesToLoad.Add("sAMAccountName") | Out-Null
     $result = $searcher.FindOne()
 
-    # Build custom PS object
+    # Build custom PS object that includes path to share on each computer
     [string]$storeNum = $result.Properties["extensionAttribute6"][0]
-    If( $storeNum -eq $null -or $storeNum -eq '' ){
+    If( $null -eq $storeNum -or $storeNum -eq '' ){
         [string]$storeNum = Get-SiteInfoFromDDSAPI $computer | Select-Object -ExpandProperty StoreNumber -First 1 -ErrorAction SilentlyContinue
         if ( $storeNum.StartsWith('0')) { $storeNum = $storeNum.Substring(1) }
     }
@@ -92,9 +100,6 @@ foreach ( $computer in $computers ){
     $i++
 }
 
-# Append CSV with computernames unable to pull StNum
-$storeNumBlank >> $logFile
-
 # Reset counter
 $i = 1
 
@@ -105,9 +110,10 @@ foreach ( $store in $storeNumsTable ){
     if ( Test-Path $store.Share ){ 
         $pathValid += $store
     }
-    else{ # Share doesn't exist
+    else{ # Failed to create shortcut
         Write-Host "Failed to create shortcut for" $store.Share -ForegroundColor Cyan
-        "Share doesn't exist " + $store.share >> $logFile
+        "Failed to create shortcut for " + $store.share >> $logFile
+        #-------------------------------------- add code to create share ------------------------------------------------#
     }
     $i++
 }
@@ -115,9 +121,11 @@ foreach ( $store in $storeNumsTable ){
 # Reassign array to remove computernames where share couldn't be accessed
 $storeNumsTable = $pathValid
 
+#-------------------------------------- add code to modify permissions ------------------------------------------------#
+
 # Duplicate store numbers
 Write-Host "Checking for duplicate store numbers and separating." -ForegroundColor Yellow
-$dupeGroups = $storeNumsTable | group storenumber | where count -gt 1
+$dupeGroups = $storeNumsTable | group storenumber | Where-Object count -gt 1
 
 foreach ( $group in $dupeGroups ){
     $counter = 1
