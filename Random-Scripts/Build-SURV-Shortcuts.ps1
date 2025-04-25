@@ -114,6 +114,31 @@ foreach ( $store in $storeNumsTable ){
         Write-Host "Failed to create shortcut for" $store.Share -ForegroundColor Cyan
         "Failed to create shortcut for " + $store.share >> $logFile
         #-------------------------------------- add code to create share ------------------------------------------------#
+        <#
+        $UserSAM = $Username.SamAccountName
+
+        New-SmbShare -Name $LDrive$ -Path "F:\$LDrive" -CimSession $Session
+        Grant-SmbShareAccess -Name $LDrive$ -AccountName "$UserSAM" -AccessRight Change -Force -CimSession $Session
+        Revoke-SmbShareAccess -Name $LDrive$ -AccountName "Everyone" -Force -CimSession $Session
+
+        $LDriveDir = $LDrive.FullName
+
+        #Check folder for access rights
+        $Access = ((Get-Item $LDriveDir).GetAccessControl('Access').Access) | Select IdentityReference | ? {$_.IdentityReference -like "*$UserEDI*"}
+        
+        If(!$Access){
+
+            #Get the current ACL from the folder
+            $ACL = Get-Acl \\NKAG-FS-001v\F$\$LDrive
+
+            #Create rule for modify rights for user
+            $Rule = New-Object System.Security.AccessControl.FileSystemAccessRule( $UserSAM,"Modify","ContainerInherit, ObjectInherit", "None", "Allow" )
+
+            #Add rule to folder
+            $ACL.AddAccessRule( $Rule )
+            Set-ACL -Path "\\NKAG-FS-001v\F$\$LDrive" -AclObject $ACL
+        }
+        #>
     }
     $i++
 }
