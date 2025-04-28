@@ -46,6 +46,10 @@ If ( Test-Path $logFile ){
 $storeNumsTable = @()
 $i = 1
 
+# test machine name
+# WCIEL-SURVEG88A
+# WCOOL-SURVEG87H
+
 # Pull list of computer names
 $OUs = @(
     "LDAP://OU=SURV,OU=Shared_Use,OU=Endpoints,DC=dds,DC=dillards,DC=net",
@@ -95,6 +99,7 @@ foreach ( $computer in $computers ){
         ComputerName = $computer
         StoreNumber  = $storeNum
         URI          = $computer.Substring(1,4)  + "_corp"
+        LocalPath     = "D:\" + $computer.Substring(1,4)  + "_corp"
         Share        = "\\" + $computer + "\" + $computer.Substring(1,4)  + "_corp"
     }
     $i++
@@ -107,46 +112,43 @@ $i = 1
 Write-Host "Testing share paths before creating." -ForegroundColor Yellow
 foreach ( $store in $storeNumsTable ){
     Write-host "Testing path $i of" $storeNumsTable.count
+    $session = New-PSSession $store.computer
     if ( Test-Path $store.Share ){ 
         $pathValid += $store
     }
     else{ # Failed to create shortcut
-        Write-Host "Failed to create shortcut for" $store.Share -ForegroundColor Cyan
-        "Failed to create shortcut for " + $store.share >> $logFile
-        #-------------------------------------- add code to create share ------------------------------------------------#
-        <#
-        $UserSAM = $Username.SamAccountName
+        $message = "Test-Path for " + $store.Share + " failed. Attempting to create share and apply permissions now."
+        Write-Host $message -ForegroundColor Cyan
+        $message >> $logFile
+        # Create SMB share
+        # share path D:\<sitecode>_Corp
+        New-SmbShare -Name $store.URI -Path $store.LocalPath -CimSession $session      
+    }
+    
+    # Grant share premissions
+    Grant-SmbShareAccess -Name $store.share -AccountName "DDS\FW-Milestone" -AccessRight Read -Force -CimSession $session
+    Revoke-SmbShareAccess -Name $store.share -AccountName "Everyone" -Force -CimSession  $session
 
-        New-SmbShare -Name $LDrive$ -Path "F:\$LDrive" -CimSession $Session
-        Grant-SmbShareAccess -Name $LDrive$ -AccountName "$UserSAM" -AccessRight Change -Force -CimSession $Session
-        Revoke-SmbShareAccess -Name $LDrive$ -AccountName "Everyone" -Force -CimSession $Session
+    # Grant NTFS permissions
+    $Access = ((Get-Item $store.share).GetAccessControl('Access').Access) | Select-Object IdentityReference | Where-Object {$_.IdentityReference -match "FW-Milestone"}
 
-        $LDriveDir = $LDrive.FullName
+    If( -not ( $Access )){
 
-        #Check folder for access rights
-        $Access = ((Get-Item $LDriveDir).GetAccessControl('Access').Access) | Select IdentityReference | ? {$_.IdentityReference -like "*$UserEDI*"}
-        
-        If(!$Access){
+        # Get the current ACL from the folder
+        $ACL = Get-Acl $store.share
 
-            #Get the current ACL from the folder
-            $ACL = Get-Acl \\NKAG-FS-001v\F$\$LDrive
+        # Create rule for modify rights for user
+        $Rule = New-Object System.Security.AccessControl.FileSystemAccessRule( "DDS\FW-Milestone","Read","ContainerInherit, ObjectInherit", "None", "Allow" )
 
-            #Create rule for modify rights for user
-            $Rule = New-Object System.Security.AccessControl.FileSystemAccessRule( $UserSAM,"Modify","ContainerInherit, ObjectInherit", "None", "Allow" )
-
-            #Add rule to folder
-            $ACL.AddAccessRule( $Rule )
-            Set-ACL -Path "\\NKAG-FS-001v\F$\$LDrive" -AclObject $ACL
-        }
-        #>
+        # Add rule to folder
+        $ACL.AddAccessRule( $Rule )
+        Set-ACL -Path $store.share -AclObject $ACL
     }
     $i++
 }
 
 # Reassign array to remove computernames where share couldn't be accessed
 $storeNumsTable = $pathValid
-
-#-------------------------------------- add code to modify permissions ------------------------------------------------#
 
 # Duplicate store numbers
 Write-Host "Checking for duplicate store numbers and separating." -ForegroundColor Yellow
