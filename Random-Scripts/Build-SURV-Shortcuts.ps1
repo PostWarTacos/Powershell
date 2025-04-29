@@ -127,7 +127,7 @@ foreach ( $store in $storeNumsTable ){
     
     # Grant share premissions
     Grant-SmbShareAccess -Name $store.share -AccountName "DDS\FW-Milestone" -AccessRight Read -Force -CimSession $session
-    Revoke-SmbShareAccess -Name $store.share -AccountName "Everyone" -Force -CimSession  $session
+    Revoke-SmbShareAccess -Name $store.share -AccountName "Everyone" -Force -CimSession  $session -ErrorAction SilentlyContinue
 
     # Grant NTFS permissions
     $Access = ((Get-Item $store.share).GetAccessControl('Access').Access) | Select-Object IdentityReference | Where-Object {$_.IdentityReference -match "FW-Milestone"}
