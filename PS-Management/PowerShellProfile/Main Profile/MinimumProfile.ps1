@@ -40,6 +40,7 @@ If ( $foundFolder ){
     $modules =  Get-ChildItem $foundFolder
     foreach ( $module in $modules ){
         Import-Module $module.fullname
+        #$module.fullname
     }
 }
 
