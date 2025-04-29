@@ -33,14 +33,14 @@ function find-file($name) {
 #---------------------------------Import PSModules---------------------------------#
 
 $user = [System.Environment]::GetFolderPath("UserProfile")
-$root = "$user\Documents"
+$root = join-path $user "Documents"
 $foundFolder = Get-ChildItem -Path $root -Directory -Recurse -ErrorAction SilentlyContinue |
-    Where-Object { $_.Name -eq "Modules" }
+    Where-Object { $_.Name -eq "Modules" } |
+    Select-Object -First 1
 If ( $foundFolder ){
-    $modules =  Get-ChildItem $foundFolder
+    $modules =  Get-ChildItem $foundFolder.FullName -ErrorAction SilentlyContinue
     foreach ( $module in $modules ){
-        Import-Module $module.fullname
-        #$module.fullname
+        Import-Module $module.fullname -ErrorAction SilentlyContinue -WarningAction SilentlyContinue | Out-Null
     }
 }
 
