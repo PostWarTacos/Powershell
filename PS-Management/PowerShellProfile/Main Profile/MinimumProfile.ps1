@@ -32,8 +32,12 @@ function find-file($name) {
 
 #---------------------------------Import PSModules---------------------------------#
 
-If ( Test-Path $clonePath\Modules ){
-    $modules = Get-ChildItem $clonePath\Modules
+$user = [System.Environment]::GetFolderPath("UserProfile")
+$root = "$user\Documents"
+$foundFolder = Get-ChildItem -Path $root -Directory -Recurse -ErrorAction SilentlyContinue |
+    Where-Object { $_.Name -eq "Modules" }
+If ( $foundFolder ){
+    $modules =  Get-ChildItem $foundFolder
     foreach ( $module in $modules ){
         Import-Module $module.fullname
     }
