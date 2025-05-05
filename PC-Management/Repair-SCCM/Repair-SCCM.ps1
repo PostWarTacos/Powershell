@@ -227,7 +227,8 @@ $success = $false
 # Directories
 $healthLogPath = "C:\drivers\ccm\logs"
 $localInstallerPath = "C:\drivers\ccm\ccmsetup"
-$serverInstallerPath = "\\slrcp223\SMS_PCI\Client"
+#$serverInstallerPath = "\\slrcp223\SMS_PCI\Client" # PCI
+#$serverInstallerPath = "\\scanz223\SMS_DDS\Client" # DDS
 
 # ------------------- CREATE DIRECTORIES -------------------- #
 
@@ -394,21 +395,23 @@ foreach ( $key in $keys ){
 Write-Host "(Step 7 of 8) Attempting reinstall." -ForegroundColor Cyan
 try {
     $message = "Initiating reinstall."
+    #Copy-Item $serverInstallerPath $localInstallerPath -Recurse -Force
     Update-HealthLog -path $healthLogPath -message $message -WriteHost -color Cyan -return
     Start-Process -FilePath "$localInstallerPath\ccmsetup.exe" -ArgumentList "/logon SMSSITECODE=PCI"
     Update-HealthLog -path $healthLogPath -message "Waiting for service to be installed." -WriteHost
+    while ( -not ( Get-Service "ccmexec" -ErrorAction SilentlyContinue )) {
+        Start-Sleep -Seconds 120
+    }
+    
+    Update-HealthLog -path $healthLogPath -message "Waiting for service to show running." -WriteHost
+    while ( (Get-Service "ccmexec").Status -ne "Running") {
+        Start-Sleep -Seconds 120
+    }
 }
 Catch{
     $message = "Install failed."
     Update-HealthLog -path $healthLogPath -message $message -WriteHost -color Red -return
-}
-while ( -not ( Get-Service "ccmexec" -ErrorAction SilentlyContinue )) {
-    Start-Sleep -Seconds 120
-}
-
-Update-HealthLog -path $healthLogPath -message "Waiting for service to show running." -WriteHost
-while ( (Get-Service "ccmexec").Status -ne "Running") {
-    Start-Sleep -Seconds 120
+    exit
 }
 
 # -------------------- REGISTER AND RUN CCMEVAL CHECK -------------------- #
