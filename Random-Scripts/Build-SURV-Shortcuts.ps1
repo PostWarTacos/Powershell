@@ -122,7 +122,10 @@ foreach ( $store in $storeNumsTable ){
         $message >> $logFile
         # Create SMB share
         # share path D:\<sitecode>_Corp
-        New-SmbShare -Name $store.URI -Path $store.LocalPath -CimSession $session      
+        New-SmbShare -Name $store.URI -Path $store.LocalPath -CimSession $session
+        if ( Test-Path $store.share ){ # Test path again to see if New-SMBshare resolved the issue.
+            $pathValid += $store
+        }  
     }
     
     # Grant share premissions
@@ -145,6 +148,7 @@ foreach ( $store in $storeNumsTable ){
         Set-ACL -Path $store.share -AclObject $ACL
     }
     $i++
+    Remove-PSSession $session
 }
 
 # Reassign array to remove computernames where share couldn't be accessed
