@@ -36,31 +36,36 @@ function Stop-ServiceWithTimeout {
     )
 
     Write-Host "Attempting to stop service: $ServiceName"
-    Stop-Service -Name $ServiceName -Force -ErrorAction SilentlyContinue -WarningAction SilentlyContinue
-
+    
+    # Attempt to stop if service is running
+    $service = Get-Service -Name $ServiceName -ErrorAction SilentlyContinue
+    if ( $service.Status -eq 'Running' ){
+        Stop-Service -Name $ServiceName -Force -ErrorAction SilentlyContinue
+    }
+    
     $elapsed = 0
-    while ($elapsed -lt $TimeoutSeconds) {
+    while ( $elapsed -lt $TimeoutSeconds ) {
         Start-Sleep -Seconds 1
         $elapsed++
 
         $service = Get-Service -Name $ServiceName -ErrorAction SilentlyContinue
         if ($null -eq $service -or $service.Status -eq 'Stopped') {
             Write-Host "Service $ServiceName stopped successfully."
+            Start-Sleep -Seconds 2 # Small delay to ensure processes finish
             break
-        }
-        else{
+        } else {
             Write-Host "Waiting for service to stop... ($elapsed/$TimeoutSeconds)"
         }
     }
-
+    
     $service = Get-Service -Name $ServiceName -ErrorAction SilentlyContinue
-    if ($null -eq $service -or $service.Status -eq 'Stopped') {
+    if ( $null -eq $service -or $service.Status -eq 'Stopped' ) {
         # do nothing
     }
-    else{
+    else {
         # If the service is still running after the timeout, force kill the process
         Write-Host "Timeout reached! Forcefully terminating the service process."
-        $serviceProcess = Get-WmiObject Win32_Service | Where-Object { $_.Name -eq $ServiceName }
+        $serviceProcess = Get-CimInstance -ClassName Win32_Service | Where-Object { $_.Name -eq $ServiceName }
         if ( $serviceProcess -and $serviceProcess.ProcessId -ne 0 ) {
             Stop-Process -Id $serviceProcess.ProcessId -Force -ErrorAction SilentlyContinue
             Write-Host "Service process terminated."
@@ -68,6 +73,26 @@ function Stop-ServiceWithTimeout {
             Write-Host "Service was already stopped or process not found."
         }
     }
+}
+
+function Get-SMSCode{
+    # Get domain DN
+    $domain = [System.DirectoryServices.ActiveDirectory.Domain]::GetCurrentDomain()
+    $domainDN = "LDAP://CN=System Management,CN=System,DC=" + ($domain.Name -replace '\.', ',DC=')
+
+    # Set up searcher
+    $searcher = New-Object System.DirectoryServices.DirectorySearcher([ADSI]$domainDN)
+    $searcher.Filter = "(objectClass=mSSMSSite)"
+    $searcher.SearchScope = "OneLevel"
+    $searcher.PropertiesToLoad.Add("mSSMSSiteCode") | Out-Null
+
+    # Search and print
+    $results = $searcher.FindAll()
+    foreach ($result in $results) {
+        $code = $result.Properties["mSSMSSiteCode"]
+    } 
+
+    return $code
 }
 
 function Update-HealthLog {
@@ -178,7 +203,7 @@ function Run-HealthCheck {
     }
 
     # Check Client Version
-    $smsClient = Get-WmiObject -Namespace "root\ccm" -Class SMS_Client -ErrorAction SilentlyContinue
+    $smsClient = Get-CimInstance -Namespace "root\ccm" -ClassName SMS_Client -ErrorAction SilentlyContinue
     if ( $smsClient.ClientVersion ) {
         Update-HealthLog -path $healthLogPath -message "SCCM Client Version: $($smsClient.ClientVersion)" -WriteHost -color Green
     } else {
@@ -187,7 +212,7 @@ function Run-HealthCheck {
     }
 
     # Check Management Point Site Name
-    $mp = Get-WmiObject -Namespace "root\ccm" -Class SMS_Authority -ErrorAction SilentlyContinue
+    $mp = Get-CimInstance -Namespace "root\ccm" -ClassName SMS_Authority -ErrorAction SilentlyContinue
     if ( $mp.Name ) {
         Update-HealthLog -path $healthLogPath -message "SCCM Site found: $($mp.Name)" -WriteHost -color Green
     } else {
@@ -196,7 +221,7 @@ function Run-HealthCheck {
     }
 
     # Check Client ID
-    $ccmClient = Get-WmiObject -Namespace "root\ccm" -Class CCM_Client -ErrorAction SilentlyContinue
+    $ccmClient = Get-CimInstance -Namespace "root\ccm" -ClassName CCM_Client -ErrorAction SilentlyContinue
     if ( $ccmClient.ClientId ) {
         Update-HealthLog -path $healthLogPath -message "SCCM Client Client ID found: $($ccmClient.ClientId)" -WriteHost -color Green
     } else {
@@ -223,6 +248,8 @@ $healthLog = [System.Collections.ArrayList]@()
 # Used in final health check
 $maxAttempts = 5
 $success = $false
+
+$siteCode = Get-SiteCode
 
 # Directories
 $healthLogPath = "C:\drivers\ccm\logs"
@@ -397,14 +424,14 @@ try {
     $message = "Initiating reinstall."
     #Copy-Item $serverInstallerPath $localInstallerPath -Recurse -Force
     Update-HealthLog -path $healthLogPath -message $message -WriteHost -color Cyan -return
-    Start-Process -FilePath "$localInstallerPath\ccmsetup.exe" -ArgumentList "/logon SMSSITECODE=PCI"
+    Start-Process -FilePath "$localInstallerPath\ccmsetup.exe" -ArgumentList "/logon SMSSITECODE=" + $siteCode
     Update-HealthLog -path $healthLogPath -message "Waiting for service to be installed." -WriteHost
     while ( -not ( Get-Service "ccmexec" -ErrorAction SilentlyContinue )) {
         Start-Sleep -Seconds 120
     }
     
     Update-HealthLog -path $healthLogPath -message "Waiting for service to show running." -WriteHost
-    while ( (Get-Service "ccmexec").Status -ne "Running") {
+    while (( Get-Service "ccmexec").Status -ne "Running" ) {
         Start-Sleep -Seconds 120
     }
 }
