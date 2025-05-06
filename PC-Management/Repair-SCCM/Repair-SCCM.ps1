@@ -35,7 +35,7 @@ function Stop-ServiceWithTimeout {
         [int]$TimeoutSeconds = 30
     )
 
-    Write-Host "Attempting to stop service: $ServiceName"
+    Write-Host "Attempting to stop service: $ServiceName" -ForegroundColor Yellow
     
     # Attempt to stop if service is running
     $service = Get-Service -Name $ServiceName -ErrorAction SilentlyContinue
@@ -50,7 +50,7 @@ function Stop-ServiceWithTimeout {
 
         $service = Get-Service -Name $ServiceName -ErrorAction SilentlyContinue
         if ($null -eq $service -or $service.Status -eq 'Stopped') {
-            Write-Host "Service $ServiceName stopped successfully."
+            Write-Host "Service $ServiceName stopped successfully." -ForegroundColor Green
             Start-Sleep -Seconds 2 # Small delay to ensure processes finish
             break
         } else {
@@ -64,13 +64,13 @@ function Stop-ServiceWithTimeout {
     }
     else {
         # If the service is still running after the timeout, force kill the process
-        Write-Host "Timeout reached! Forcefully terminating the service process."
+        Write-Host "Timeout reached! Forcefully terminating the service process." -ForegroundColor Green
         $serviceProcess = Get-CimInstance -ClassName Win32_Service | Where-Object { $_.Name -eq $ServiceName }
         if ( $serviceProcess -and $serviceProcess.ProcessId -ne 0 ) {
             Stop-Process -Id $serviceProcess.ProcessId -Force -ErrorAction SilentlyContinue
-            Write-Host "Service process terminated."
+            Write-Host "Service process terminated." -ForegroundColor Green
         } else {
-            Write-Host "Service was already stopped or process not found."
+            Write-Host "Service was already stopped or process not found." -ForegroundColor Yellow
         }
     }
 }
@@ -117,10 +117,10 @@ function Update-HealthLog {
     $healthLog.Add("[$(Get-Date -Format 'dd-MMM-yy HH:mm:ss')] Message: $message") | Out-Null
 
     if ( $PSBoundParameters.ContainsKey('WriteHost') -and $PSBoundParameters.ContainsKey('Color') ) {
-        Write-Host $message -ForegroundColor $color
+        Write-Host $message -ForegroundColor $Color
     }
     else {
-        Write-Host $message
+        Write-Host $Message
     }
 
     if ($PSBoundParameters.ContainsKey('Return')) {
@@ -288,7 +288,7 @@ Else { # Dirs match. Continue with repair.
 Clear-Host
 
 $message = "Attempting repair actions."
-Update-HealthLog -path $healthLogPath -message $message -WriteHost -color Cyan -return
+Update-HealthLog -path $healthLogPath -Message $message -WriteHost -Color Cyan -Return
 
 # Remove certs and restart service
 # Possible this is the only needed fix.
@@ -296,35 +296,41 @@ Update-HealthLog -path $healthLogPath -message $message -WriteHost -color Cyan -
 Write-Host "(Step 1 of 8) Stopping CcmExec to remove SMS certs." -ForegroundColor Cyan
 $found = Get-Service CcmExec -ErrorAction SilentlyContinue | Where-Object status -ne "stopped"
 if ( $found ){
-    Stop-ServiceWithTimeout CcmExec
-    write-host "Removing SMS certs."
-    Get-ChildItem Cert:\LocalMachine\SMS | Remove-Item
-    Start-Service CcmExec -ErrorAction SilentlyContinue
-
-    # Start service
-    Start-Sleep -Seconds 10 # Allow some time for the service to start
-
-    # Attempt to contact MP and pull new policy. If this works, client should be healthy.
-    Invoke-WmiMethod -Namespace "root\ccm" -Class "SMS_Client" -Name "TriggerSchedule" -ArgumentList "{00000000-0000-0000-0000-000000000021}" | Out-Null
-    $healthLogPath = "C:\Windows\CCM\Logs\PolicyAgent.log"
-    $recentLogs = Get-Content $healthLogPath -Tail 50
-    $patterns = @(
-        "Updated namespace .* successfully",
-        "Successfully received policy assignments from MP",
-        "PolicyAgent successfully processed the policy assignment",
-        "Completed policy evaluation cycle"
-    )
-                             
-    $success = $recentLogs | Select-String -Pattern $patterns
+    try {
+        Stop-ServiceWithTimeout CcmExec
+        write-host "Removing SMS certs."  -ForegroundColor Yellow
+        Get-ChildItem Cert:\LocalMachine\SMS | Remove-Item
+        Start-Service CcmExec -ErrorAction SilentlyContinue
     
-    # Announce success/fail
-    if ( $success ) {
-        $message = "Service restarted successfully and MP contacted. Assuming resolved, ending script."
-        Update-HealthLog -path $healthLogPath -message $message -WriteHost -color Green -return
-        exit
-    } else {
-        $message = "Failed to start service. Continuing with SCCM Client repair."
-        Update-HealthLog -path $healthLogPath -message $message -WriteHost -color Yellow -return
+        # Start service
+        Start-Sleep -Seconds 10 # Allow some time for the service to start
+    
+        # Attempt to contact MP and pull new policy. If this works, client should be healthy.
+        Invoke-WmiMethod -Namespace "root\ccm" -Class "SMS_Client" -Name "TriggerSchedule" -ArgumentList "{00000000-0000-0000-0000-000000000021}" | Out-Null
+        $healthLogPath = "C:\Windows\CCM\Logs\PolicyAgent.log"
+        $recentLogs = Get-Content $healthLogPath -Tail 50
+        $patterns = @(
+            "Updated namespace .* successfully",
+            "Successfully received policy assignments from MP",
+            "PolicyAgent successfully processed the policy assignment",
+            "Completed policy evaluation cycle"
+        )
+                                 
+        $success = $recentLogs | Select-String -Pattern $patterns
+        
+        # Announce success/fail
+        if ( $success ) {
+            $message = "Service restarted successfully and MP contacted. Assuming resolved, ending script."
+            Update-HealthLog -path $healthLogPath -message $message -WriteHost -color Green -return
+            exit
+        } else {
+            $message = "Failed to start service. Continuing with SCCM Client repair."
+            Update-HealthLog -path $healthLogPath -message $message -WriteHost -color Yellow -return
+        }   
+    }
+    catch {
+           $message = "Failed to start service. Continuing with SCCM Client repair."
+            Update-HealthLog -path $healthLogPath -message $message -WriteHost -color Yellow -return
     }
 } Else {
     $message = "CcmExec Service not installed. Continuing with SCCM Client repair."
@@ -334,9 +340,16 @@ if ( $found ){
 # Clean uninstall
 Write-Host "(Step 2 of 8) Performing complete clean uninstall." -ForegroundColor Cyan
 if ( Test-Path C:\Windows\ccmsetup\ccmsetup.exe ){
-    $message = "Ccmsetup.exe uninstalled. Continuing."
-    Update-HealthLog -path $healthLogPath -message $message -WriteHost -color Green -return
-    Start-Process -FilePath "C:\Windows\ccmsetup\ccmsetup.exe" -ArgumentList "/uninstall" -Wait -Verbose
+    try {
+        $proc = Start-Process -FilePath "C:\Windows\ccmsetup\ccmsetup.exe" -ArgumentList "/uninstall" -PassThru -Verbose
+        $proc.WaitForExit()
+        $message = "Ccmsetup.exe uninstalled. Continuing."
+        Update-HealthLog -path $healthLogPath -message $message -WriteHost -color Green -return
+    }
+    catch {
+        $message = "Ccmsetup.exe not found. Continuing."
+        Update-HealthLog -path $healthLogPath -message $message -WriteHost -color Yellow -return
+    }
 } else {
     $message = "Ccmsetup.exe not found. Continuing."
     Update-HealthLog -path $healthLogPath -message $message -WriteHost -color Yellow -return
@@ -350,10 +363,16 @@ $services = @(
 )
 foreach ( $service in $services ){
     if ( get-service $service -ErrorAction SilentlyContinue ){
-        $message = "$service service found and removed. Continuing."
-        Update-HealthLog -path $healthLogPath -message $message -WriteHost -color Green -return        
-        Stop-ServiceWithTimeout $service
-        sc delete $service -Force -ErrorAction SilentlyContinue
+        try {
+            Stop-ServiceWithTimeout $service
+            sc delete $service -Force -ErrorAction SilentlyContinue
+            $message = "$service service found and removed. Continuing."
+            Update-HealthLog -path $healthLogPath -message $message -WriteHost -color Green -return   
+        }
+        catch {
+            $message = "$service service not found. Continuing."
+            Update-HealthLog -path $healthLogPath -message $message -WriteHost -color Yellow -return
+        }
     } else{
         $message = "$service service not found. Continuing."
         Update-HealthLog -path $healthLogPath -message $message -WriteHost -color Yellow -return
@@ -371,9 +390,15 @@ $files = @(
 foreach ( $file in $files ){
     $proc = Get-Process | Where-Object { $_.modules.filename -like "$file*" }
     if ($proc){
-        $message = "$($proc.name) killed. Continuing."
-        Update-HealthLog -path $healthLogPath -message $message -WriteHost -color Green -return
-        Stop-Process $proc.Id -Force -ErrorAction SilentlyContinue
+        try {
+            Stop-Process $proc.Id -Force -ErrorAction SilentlyContinue
+            $message = "$($proc.name) killed. Continuing."
+            Update-HealthLog -path $healthLogPath -message $message -WriteHost -color Green -return    
+        }
+        catch {
+            $message = "Process tied to $file not found. Continuing."
+            Update-HealthLog -path $healthLogPath -message $message -WriteHost -color Yellow -return
+        }
     } Else{
         $message = "Process tied to $file not found. Continuing."
         Update-HealthLog -path $healthLogPath -message $message -WriteHost -color Yellow -return
@@ -384,10 +409,16 @@ foreach ( $file in $files ){
 Write-Host "(Step 5 of 8) Deleting all SCCM folders and files." -ForegroundColor Cyan
 foreach ( $file in $files ){
     if ( Test-Path $file ){
-        $message = "$file found and removed. Continuing."
-        Update-HealthLog -path $healthLogPath -message $message -WriteHost -color Green -return
-        $ConfirmPreference = 'None'
-        Remove-Item $file -Recurse -Force -ErrorAction SilentlyContinue
+        try {
+            $ConfirmPreference = 'None'
+            Remove-Item $file -Recurse -Force -ErrorAction SilentlyContinue
+            $message = "$file found and removed. Continuing."
+            Update-HealthLog -path $healthLogPath -message $message -WriteHost -color Green -return    
+        }
+        catch {
+            $message = "$file not found. Continuing."
+            Update-HealthLog -path $healthLogPath -message $message -WriteHost -color Yellow -return
+        }
     } else{
         $message = "$file not found. Continuing."
         Update-HealthLog -path $healthLogPath -message $message -WriteHost -color Yellow -return
@@ -409,9 +440,15 @@ $keys= @(
 )
 foreach ( $key in $keys ){
     if( Test-Path $KEY ){
-        $message = "$KEY found and removed. Continuing."
-        Update-HealthLog -path $healthLogPath -message $message -WriteHost -color Green -return
-        Remove-Item $KEY -Recurse -Force -ErrorAction SilentlyContinue
+        try {
+            Remove-Item $KEY -Recurse -Force -ErrorAction SilentlyContinue
+            $message = "$KEY found and removed. Continuing."
+            Update-HealthLog -path $healthLogPath -message $message -WriteHost -color Green -return    
+        }
+        catch {
+            $message = "Could not find $KEY. Continuing."
+            Update-HealthLog -path $healthLogPath -message $message -WriteHost -color Yellow -return
+        }
     } Else { 
         $message = "Could not find $KEY. Continuing."
         Update-HealthLog -path $healthLogPath -message $message -WriteHost -color Yellow -return
@@ -421,11 +458,13 @@ foreach ( $key in $keys ){
 # Reinstall SCCM via \\slrcp223\SMS_PCI\Clientccmsetup.exe
 Write-Host "(Step 7 of 8) Attempting reinstall." -ForegroundColor Cyan
 try {
-    $message = "Initiating reinstall."
     #Copy-Item $serverInstallerPath $localInstallerPath -Recurse -Force
+    $proc = Start-Process -FilePath $localInstallerPath + "\ccmsetup.exe" -ArgumentList "/logon SMSSITECODE=" + $siteCode -PassThru -Verbose
+    $proc.WaitForExit()
+    $message = "Reinstall complete."
     Update-HealthLog -path $healthLogPath -message $message -WriteHost -color Cyan -return
-    Start-Process -FilePath "$localInstallerPath\ccmsetup.exe" -ArgumentList "/logon SMSSITECODE=" + $siteCode
-    Update-HealthLog -path $healthLogPath -message "Waiting for service to be installed." -WriteHost
+    $message = "Waiting for service to be installed."
+    Update-HealthLog -path $healthLogPath -message $message -WriteHost
     while ( -not ( Get-Service "ccmexec" -ErrorAction SilentlyContinue )) {
         Start-Sleep -Seconds 120
     }
