@@ -254,6 +254,8 @@ $siteCode = Get-SiteCode
 # Directories
 $healthLogPath = "C:\drivers\ccm\logs"
 $localInstallerPath = "C:\drivers\ccm\ccmsetup"
+
+# Domain Specific Variables
 #$serverInstallerPath = "\\slrcp223\SMS_PCI\Client" # PCI
 #$serverInstallerPath = "\\scanz223\SMS_DDS\Client" # DDS
 
