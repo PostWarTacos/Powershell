@@ -75,23 +75,31 @@ function Stop-ServiceWithTimeout {
     }
 }
 
-function Get-SMSCode{
-    # Get domain DN
+function Get-SiteCode{
     $domain = [System.DirectoryServices.ActiveDirectory.Domain]::GetCurrentDomain()
-    $domainDN = "LDAP://CN=System Management,CN=System,DC=" + ($domain.Name -replace '\.', ',DC=')
+    try {
+        # Get domain DN
+        $domainDN = "LDAP://CN=System Management,CN=System,DC=" + ($domain.Name -replace '\.', ',DC=')
 
-    # Set up searcher
-    $searcher = New-Object System.DirectoryServices.DirectorySearcher([ADSI]$domainDN)
-    $searcher.Filter = "(objectClass=mSSMSSite)"
-    $searcher.SearchScope = "OneLevel"
-    $searcher.PropertiesToLoad.Add("mSSMSSiteCode") | Out-Null
+        # Set up searcher
+        $searcher = New-Object System.DirectoryServices.DirectorySearcher([ADSI]$domainDN)
+        $searcher.Filter = "(objectClass=mSSMSSite)"
+        $searcher.SearchScope = "OneLevel"
+        $searcher.PropertiesToLoad.Add("mSSMSSiteCode") | Out-Null
 
-    # Search and print
-    $results = $searcher.FindAll()
-    foreach ($result in $results) {
-        $code = $result.Properties["mSSMSSiteCode"]
-    } 
-
+        # Search and print
+        $results = $searcher.FindAll()
+        foreach ($result in $results) {
+            $code = $result.Properties["mSSMSSiteCode"]
+        } 
+    } Catch {
+        if ( $domain -match "DDS" ) {
+            $code = "DDS"
+        }
+        elseif ( $domain -match "DPOS" ) {
+            $code = "PCI"
+        }
+    }
     return $code
 }
 
@@ -461,7 +469,7 @@ foreach ( $key in $keys ){
 Write-Host "(Step 7 of 8) Attempting reinstall." -ForegroundColor Cyan
 try {
     #Copy-Item $serverInstallerPath $localInstallerPath -Recurse -Force
-    $proc = Start-Process -FilePath $localInstallerPath + "\ccmsetup.exe" -ArgumentList "/logon SMSSITECODE=" + $siteCode -PassThru -Verbose
+    $proc = Start-Process -FilePath "$localInstallerPath\ccmsetup.exe" -ArgumentList "/logon SMSSITECODE=$siteCode" -PassThru -Verbose
     $proc.WaitForExit()
     $message = "Reinstall complete."
     Update-HealthLog -path $healthLogPath -message $message -WriteHost -color Cyan -return
