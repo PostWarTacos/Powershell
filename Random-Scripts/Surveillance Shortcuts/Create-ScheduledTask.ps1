@@ -18,22 +18,15 @@ $principal = New-ScheduledTaskPrincipal -UserId "NT AUTHORITY\SYSTEM" -LogonType
 #=============================
 # Create Create-SurvShortcuts Task
 #=============================
-$action = New-ScheduledTaskAction -Execute "powershell.exe"
+$action = New-ScheduledTaskAction -Execute "powershell.exe" `
     -Argument "-NoProfile -ExecutionPolicy Bypass -EncodedCommand $encodedCheck"
 
 $desc = "Scheduled task to create shortcuts to surveillance machines."
 
 
-Register-ScheduledTask -TaskName "Create-SurvShortcuts"
-                       -Action $action
-                       -Trigger $trigger
-                       -settings $settings
-                       -Principal $principal
+Register-ScheduledTask -TaskName "Create-SurvShortcuts" `
+                       -Action $action `
+                       -Trigger $trigger `
+                       -settings $settings `
+                       -Principal $principal `
                        -Description $desc
-
-if(Get-ScheduledTask -TaskName Create-SurvShortcuts){
-    $result = "Created Create-SurvShortcuts task"
-} else{
-    $result = "Failed to create Create-SurvShortcuts task"
-}
-return $result
