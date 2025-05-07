@@ -27,6 +27,7 @@ $desc = "Scheduled task to create shortcuts to surveillance machines."
 Register-ScheduledTask -TaskName "Create-SurvShortcuts" `
                        -Action $action `
                        -Trigger $trigger `
+                       -RunLevel Highest `
                        -settings $settings `
                        -Principal $principal `
                        -Description $desc
