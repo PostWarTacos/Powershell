@@ -13,7 +13,7 @@ $encodedCheck = "IwAjACMAIwAjACMAIwAjACMAIwAjACMAIwAjACMAIwAjACMAIwAjACMAIwAjACM
 #====================================
 $trigger = New-ScheduledTaskTrigger -Weekly -DaysOfWeek Friday -At 4am
 $settings = New-ScheduledTaskSettingsSet -WakeToRun
-$principal = New-ScheduledTaskPrincipal -UserId "NT AUTHORITY\SYSTEM" -LogonType ServiceAccount
+$principal = New-ScheduledTaskPrincipal -UserId "$env:USERNAME" -LogonType Interactive
 
 #=============================
 # Create Create-SurvShortcuts Task
@@ -24,7 +24,7 @@ $action = New-ScheduledTaskAction -Execute "powershell.exe" `
 $desc = "Scheduled task to create shortcuts to surveillance machines."
 
 
-Register-ScheduledTask -TaskName "Create-SurvShortcuts" `
+serviceui.exe Register-ScheduledTask -TaskName "Create-SurvShortcuts" `
                        -Action $action `
                        -Trigger $trigger `
                        -RunLevel Highest `
