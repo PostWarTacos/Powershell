@@ -70,8 +70,8 @@ $computers = foreach ($OU in $OUs) {
 }   
 
 # Test Connection to all SURV machines
-foreach ( $computer in $computers ){
-    $alives = if ( Test-Connection -Quiet -Count 2 -ComputerName $computer){
+$alives = foreach ( $computer in $computers ){
+    if ( Test-Connection -Quiet -Count 2 -ComputerName $computer){
         Write-Output $computer
     }
 }
