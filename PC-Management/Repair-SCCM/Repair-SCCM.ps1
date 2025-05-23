@@ -335,12 +335,12 @@ if ( $found ){
             exit
         } else {
             $message = "Failed to start service. Continuing with SCCM Client repair."
-            Update-HealthLog -path $healthLogPath -message $message -WriteHost -color Yellow -return
+            Update-HealthLog -path $healthLogPath -message $message -WriteHost -color Red -return
         }   
     }
     catch {
            $message = "Failed to start service. Continuing with SCCM Client repair."
-            Update-HealthLog -path $healthLogPath -message $message -WriteHost -color Yellow -return
+            Update-HealthLog -path $healthLogPath -message $message -WriteHost -color Red -return
     }
 } Else {
     $message = "CcmExec Service not installed. Continuing with SCCM Client repair."
@@ -357,8 +357,9 @@ if ( Test-Path C:\Windows\ccmsetup\ccmsetup.exe ){
         Update-HealthLog -path $healthLogPath -message $message -WriteHost -color Green -return
     }
     catch {
-        $message = "Ccmsetup.exe not found. Continuing."
-        Update-HealthLog -path $healthLogPath -message $message -WriteHost -color Yellow -return
+        $message = "Failed to uninstall ccm. Exiting script."
+        Update-HealthLog -path $healthLogPath -message $message -WriteHost -color Red -return
+        exit 1
     }
 } else {
     $message = "Ccmsetup.exe not found. Continuing."
@@ -380,8 +381,8 @@ foreach ( $service in $services ){
             Update-HealthLog -path $healthLogPath -message $message -WriteHost -color Green -return   
         }
         catch {
-            $message = "$service service not found. Continuing."
-            Update-HealthLog -path $healthLogPath -message $message -WriteHost -color Yellow -return
+            $message = "Failed to stop and remove $service service. Continuing script but may cause issues."
+            Update-HealthLog -path $healthLogPath -message $message -WriteHost -color Red -return
         }
     } else{
         $message = "$service service not found. Continuing."
@@ -406,8 +407,8 @@ foreach ( $file in $files ){
             Update-HealthLog -path $healthLogPath -message $message -WriteHost -color Green -return    
         }
         catch {
-            $message = "Process tied to $file not found. Continuing."
-            Update-HealthLog -path $healthLogPath -message $message -WriteHost -color Yellow -return
+            $message = "Failed to kill $proc process. Continuing script but may cause issues."
+            Update-HealthLog -path $healthLogPath -message $message -WriteHost -color Red -return
         }
     } Else{
         $message = "Process tied to $file not found. Continuing."
@@ -426,8 +427,8 @@ foreach ( $file in $files ){
             Update-HealthLog -path $healthLogPath -message $message -WriteHost -color Green -return    
         }
         catch {
-            $message = "$file not found. Continuing."
-            Update-HealthLog -path $healthLogPath -message $message -WriteHost -color Yellow -return
+            $message = "Failed to remove $file file(s). Continuing script but may cause issues."
+            Update-HealthLog -path $healthLogPath -message $message -WriteHost -color Red -return
         }
     } else{
         $message = "$file not found. Continuing."
@@ -456,8 +457,8 @@ foreach ( $key in $keys ){
             Update-HealthLog -path $healthLogPath -message $message -WriteHost -color Green -return    
         }
         catch {
-            $message = "Could not find $KEY. Continuing."
-            Update-HealthLog -path $healthLogPath -message $message -WriteHost -color Yellow -return
+            $message = "Failed to remove $key reg key. Continuing script but may cause issues."
+            Update-HealthLog -path $healthLogPath -message $message -WriteHost -color Red -return
         }
     } Else { 
         $message = "Could not find $KEY. Continuing."
@@ -465,15 +466,19 @@ foreach ( $key in $keys ){
     }
 }
 
-# Reinstall SCCM via \\slrcp223\SMS_PCI\Clientccmsetup.exe
+# Reinstall SCCM
 Write-Host "(Step 7 of 8) Attempting reinstall." -ForegroundColor Cyan
 try {
-    #Copy-Item $serverInstallerPath $localInstallerPath -Recurse -Force
     # DDS
-    #$proc = Start-Process -FilePath "$localInstallerPath\ccmsetup.exe" -ArgumentList "/logon SMSSITECODE=$siteCode /mp:SCANZ223 FSP=VOTCZ223" -PassThru -Verbose
+    if ( $siteCode -eq "DDS") {
+        $proc = Start-Process -FilePath "$localInstallerPath\ccmsetup.exe" -ArgumentList "/logon SMSSITECODE=$siteCode /mp:SCANZ223 FSP=VOTCZ223" -PassThru -Verbose
+    }
     # DPOS
-    #$proc = Start-Process -FilePath "$localInstallerPath\ccmsetup.exe" -ArgumentList "/logon SMSSITECODE=$siteCode /mp:SCANZ223 FSP=VOTCZ223" -PassThru -Verbose
-    #$proc.WaitForExit()
+    elseif ( $sitecode -eq "PCI" ) {
+        $proc = Start-Process -FilePath "$localInstallerPath\ccmsetup.exe" -ArgumentList "/logon SMSSITECODE=$siteCode" -PassThru -Verbose    
+    }
+       
+    $proc.WaitForExit()
     $message = "Reinstall complete."
     Update-HealthLog -path $healthLogPath -message $message -WriteHost -color Cyan -return
     $message = "Waiting for service to be installed."
@@ -490,7 +495,7 @@ try {
 Catch{
     $message = "Install failed."
     Update-HealthLog -path $healthLogPath -message $message -WriteHost -color Red -return
-    exit
+    exit 1
 }
 
 # -------------------- REGISTER AND RUN CCMEVAL CHECK -------------------- #
