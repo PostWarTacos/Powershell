@@ -304,7 +304,7 @@ Update-HealthLog -path $healthLogPath -Message $message -WriteHost -Color Cyan -
 # Possible this is the only needed fix.
 # Run this first step and then test if it worked before continuing. 
 Write-Host "(Step 1 of 8) Stopping CcmExec to remove SMS certs." -ForegroundColor Cyan
-$found = Get-Service CcmExec -ErrorAction SilentlyContinue | Where-Object status -ne "stopped"
+$found = Get-Service CcmExec -ErrorAction SilentlyContinue
 if ( $found ){
     try {
         Stop-ServiceWithTimeout CcmExec
@@ -469,8 +469,11 @@ foreach ( $key in $keys ){
 Write-Host "(Step 7 of 8) Attempting reinstall." -ForegroundColor Cyan
 try {
     #Copy-Item $serverInstallerPath $localInstallerPath -Recurse -Force
-    $proc = Start-Process -FilePath "$localInstallerPath\ccmsetup.exe" -ArgumentList "/logon SMSSITECODE=$siteCode" -PassThru -Verbose
-    $proc.WaitForExit()
+    # DDS
+    #$proc = Start-Process -FilePath "$localInstallerPath\ccmsetup.exe" -ArgumentList "/logon SMSSITECODE=$siteCode /mp:SCANZ223 FSP=VOTCZ223" -PassThru -Verbose
+    # DPOS
+    #$proc = Start-Process -FilePath "$localInstallerPath\ccmsetup.exe" -ArgumentList "/logon SMSSITECODE=$siteCode /mp:SCANZ223 FSP=VOTCZ223" -PassThru -Verbose
+    #$proc.WaitForExit()
     $message = "Reinstall complete."
     Update-HealthLog -path $healthLogPath -message $message -WriteHost -color Cyan -return
     $message = "Waiting for service to be installed."
