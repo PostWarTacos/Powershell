@@ -17,20 +17,17 @@ function Add-HealthLog {
         [switch]$Return
     )
 
-    $healthLog = [System.Collections.ArrayList]@()
+    $healthLog.Add("[$(Get-Date -Format 'dd-MMM-yy HH:mm:ss')] Message: $message") | Out-Null
 
-    $healthLog.Add("[$(Get-Date -Format 'dd-MMM-yy HH:mm:ss')] Message: $Message") | Out-Null
-
-    if ($PSBoundParameters.ContainsKey('WriteHost')) {
-        if ($PSBoundParameters.ContainsKey('Color')) {
-            Write-Host $Message -ForegroundColor $Color
-        } else {
-            Write-Host $Message
-        }
+    if ( $PSBoundParameters.ContainsKey('WriteHost') -and $PSBoundParameters.ContainsKey('Color') ) {
+        Write-Host $message -ForegroundColor $Color
+    }
+    else {
+        Write-Host $Message
     }
 
     if ($PSBoundParameters.ContainsKey('Return')) {
-        $null = return $Message
+        $null = return $message | Out-Null
     }
 }
 
