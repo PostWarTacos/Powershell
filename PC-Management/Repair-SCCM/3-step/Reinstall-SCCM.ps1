@@ -174,7 +174,7 @@ try {
 Catch{
     $message = "Install failed. Caught error: $_"
     Update-HealthLog -path $healthLogPath -message $message -WriteHost -color Red -return
-    exit 1
+    exit $_
 }
 
 # -------------------- REGISTER AND RUN CCMEVAL CHECK -------------------- #
@@ -204,7 +204,7 @@ for ( $i = 1; $i -le $maxAttempts; $i++ ) {
 
 if ( -not $success ) {
     Write-Host "Health checks did not pass after $maxAttempts attempts." -ForegroundColor Red
-    exit 1
+    exit 201
 }
 
 $healthLog >> $healthLogPath\HealthCheck.txt

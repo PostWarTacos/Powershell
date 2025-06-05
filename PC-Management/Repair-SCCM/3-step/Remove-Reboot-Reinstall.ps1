@@ -4,11 +4,35 @@ $computer = Read-host "Enter Computername"
 $remove = "C:\Users\wurtzmt-a\Documents\Coding\Powershell\Remove-SCCM.ps1"
 $reinstall = "C:\Users\wurtzmt-a\Documents\Coding\Powershell\reinstall-sccm.ps1"
 
-# remove
-Invoke-script -computername $computer -filepath $remove
+# Uninstall and Remove
+try {
+    $exitCode = Invoke-script -computername $computer -filepath $remove -ErrorAction stop
+}
+catch{
+    $EXIT_SUCCESS = 0
+    $EXIT_ERROR_COUNT = 1
+    $EXIT_INTERACTION_REQ = 2
 
+    switch ($exitCode) {
+        $EXIT_SUCCESS{
+            # Do nothing. Continue script
+        }
+        $EXIT_ERROR_COUNT {
+            write-host "Non-critical error(s). Please investigate."
+            exit 101
+        }
+        $EXIT_INTERACTION_REQ {
+            write-host "User interaction is required."
+            exit 102
+        }
+        default {
+            exit $exitCode
+        }
+    }
+}
+
+# File Check
 $fileCheck = $null
-
 $fileCheck = Invoke-Command $computer {
     # Check files
     function Get-ExeVersion {
@@ -87,7 +111,7 @@ if ( $fileCheck -eq "Not Found" ){
     #exit
 }
 
-# reboot and wait
+# Reboot and Wait
 $initialBootTime = invoke-command -ComputerName $computer { 
     ( Get-CimInstance -ComputerName $Computer -ClassName Win32_OperatingSystem ).LastBootUpTime
 }
@@ -106,6 +130,24 @@ do {
 
 Start-Sleep -Seconds 300
 
-# reinstall
-Invoke-script -computername $computer -filepath $reinstall
+# Reinstall
+try {
+    $exitCode = Invoke-script -computername $computer -filepath $reinstall -ErrorAction stop
+}
+catch{
+    $EXIT_SUCCESS = 0
+    $EXIT_HEALTH_CHECK = 1
+
+    switch ($exitCode) {
+        $EXIT_SUCCESS{
+            # Do nothing. Continue script
+        }
+        $EXIT_HEALTH_CHECK {
+            exit 201
+        }
+        default {
+            exit $exitCode
+        }
+    }
+}
  

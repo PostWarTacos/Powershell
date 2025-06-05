@@ -146,6 +146,10 @@ function Run-HealthCheck {
 # Creates an Arraylist which is mutable and easier to manipulate than an array.
 $healthLog = [System.Collections.ArrayList]@()
 
+# Error handling
+$errorCount = 0
+$critErrors = $false
+
 # Used in final health check
 $maxAttempts = 3
 $success = $false
@@ -204,7 +208,7 @@ if ( $found ){
         if ( $success ) {
             $message = "Service restarted successfully and MP contacted. Assuming resolved, ending script."
             Update-HealthLog -path $healthLogPath -message $message -WriteHost -color Green
-            exit 0
+            exit 102
         } else {
             $message = "Failed to start service. Continuing with SCCM Client removal and reinstall."
             Update-HealthLog -path $healthLogPath -message $message -WriteHost -color Red -return
@@ -236,7 +240,8 @@ if ( Test-Path C:\Windows\ccmsetup\ccmsetup.exe ){
     catch {
         $message = "Failed to uninstall ccm. Exiting script. Caught error: $_"
         Update-HealthLog -path $healthLogPath -message $message -WriteHost -color Red -return
-        exit 1
+        $critErrors = $true
+        exit $_
     }
 } else {
     $message = "Ccmsetup.exe not found."
@@ -260,6 +265,7 @@ foreach ( $service in $services ){
         catch {
             $message = "Failed to stop and remove $service service. Continuing script but may cause issues."
             Update-HealthLog -path $healthLogPath -message $message -WriteHost -color Red -return
+            $errorCount++
         }
     } else{
         $message = "$service service not found."
@@ -286,6 +292,7 @@ foreach ( $file in $files ){
         catch {
             $message = "Failed to kill $proc process. Continuing script but may cause issues."
             Update-HealthLog -path $healthLogPath -message $message -WriteHost -color Red -return
+            $errorCount++
         }
     } Else{
         $message = "Process tied to $file not found."
@@ -307,6 +314,7 @@ foreach ( $file in $files ){
         catch {
             $message = "Failed to remove $file file(s). Continuing script but may cause issues."
             Update-HealthLog -path $healthLogPath -message $message -WriteHost -color Red -return
+            $errorCount++
         }
     } else{
         $message = "$file not found."
@@ -339,6 +347,7 @@ foreach ( $key in $keys ){
         catch {
             $message = "Failed to remove $key reg key. Continuing script but may cause issues."
             Update-HealthLog -path $healthLogPath -message $message -WriteHost -color Red -return
+            $errorCount++
         }
     } Else { 
         $message = "Could not find $KEY."
@@ -359,6 +368,17 @@ try {
 catch {
     $message = "Failed to remove namespace(s). Continuing script but may cause issues."
     Update-HealthLog -path $healthLogPath -message $message -WriteHost -color Red -return
+    $errorCount++
+}
+
+if ( $errorCount -gt 0 ){
+    $continue = Read-Host "There were $errorCount non-critical errors. Do you wish to continue with the reinstall? There's no guarantee it will succeed. (y/n)"
+    if( $continue -eq "y" ){
+        # Do nothing
+    }
+    elseif( $continue -eq "n" ){
+        exit 101
+    }
 }
 
 $healthLog >> $healthLogPath\HealthCheck.txt
