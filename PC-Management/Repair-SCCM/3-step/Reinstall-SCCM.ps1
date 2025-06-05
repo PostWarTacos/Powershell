@@ -1,51 +1,3 @@
-function Stop-ServiceWithTimeout {
-    param (
-        [Parameter(Mandatory=$true)]
-        [string]$ServiceName,
-
-        [int]$TimeoutSeconds = 30
-    )
-
-    Write-Host "Attempting to stop service: $ServiceName" -ForegroundColor Yellow
-    
-    # Attempt to stop if service is running
-    $service = Get-Service -Name $ServiceName -ErrorAction SilentlyContinue
-    if ( $service.Status -eq 'Running' ){
-        Stop-Service -Name $ServiceName -Force -ErrorAction SilentlyContinue
-    }
-    
-    $elapsed = 0
-    while ( $elapsed -lt $TimeoutSeconds ) {
-        Start-Sleep -Seconds 1
-        $elapsed++
-
-        $service = Get-Service -Name $ServiceName -ErrorAction SilentlyContinue
-        if ($null -eq $service -or $service.Status -eq 'Stopped') {
-            Write-Host "Service $ServiceName stopped successfully." -ForegroundColor Green
-            Start-Sleep -Seconds 2 # Small delay to ensure processes finish
-            break
-        } else {
-            Write-Host "Waiting for service to stop... ($elapsed/$TimeoutSeconds)"
-        }
-    }
-    
-    $service = Get-Service -Name $ServiceName -ErrorAction SilentlyContinue
-    if ( $null -eq $service -or $service.Status -eq 'Stopped' ) {
-        # do nothing
-    }
-    else {
-        # If the service is still running after the timeout, force kill the process
-        Write-Host "Timeout reached! Forcefully terminating the service process." -ForegroundColor Green
-        $serviceProcess = Get-CimInstance -ClassName Win32_Service | Where-Object { $_.Name -eq $ServiceName }
-        if ( $serviceProcess -and $serviceProcess.ProcessId -ne 0 ) {
-            Stop-Process -Id $serviceProcess.ProcessId -Force -ErrorAction SilentlyContinue
-            Write-Host "Service process terminated." -ForegroundColor Green
-        } else {
-            Write-Host "Service was already stopped or process not found." -ForegroundColor Yellow
-        }
-    }
-}
-
 function Get-SiteCode{
     $domain = [System.DirectoryServices.ActiveDirectory.Domain]::GetCurrentDomain()
     try {
@@ -104,56 +56,6 @@ function Update-HealthLog {
 
     if ($PSBoundParameters.ContainsKey('Return')) {
         $null = return $message | Out-Null
-    }
-}
-
-function Test-DirsMatch {
-    param (
-        [Parameter(Mandatory)]
-        [string]$PathA,
-
-        [Parameter(Mandatory)]
-        [string]$PathB,
-
-        [ValidateSet("MD5","SHA1","SHA256")]
-        [string]$Algorithm = "SHA256"
-    )
-
-    $zipA = [System.IO.Path]::ChangeExtension((New-TemporaryFile).FullName, ".zip")
-    $zipB = [System.IO.Path]::ChangeExtension((New-TemporaryFile).FullName, ".zip")
-    
-    try {
-        Compress-Archive -Path "$PathA\*" -DestinationPath $zipA -Force -Verbose
-        Compress-Archive -Path "$PathB\*" -DestinationPath $zipB -Force -Verbose
-
-        $hashA = Get-FileHash -Path $zipA -Algorithm $Algorithm
-        $hashB = Get-FileHash -Path $zipB -Algorithm $Algorithm
-
-        return ( $hashA.Hash -eq $hashB.Hash )
-    }
-    finally {
-        Remove-Item $zipA, $zipB -Force -ErrorAction SilentlyContinue
-    }
-}
-
-function Find-ADSIObject {
-    [CmdletBinding()]
-    param (
-        [Parameter(Mandatory)]
-        [string]$Name
-    )
-
-    # Map LDAP filter
-    $filter = "(&(objectClass=computer)(sAMAccountName=$Name`$))"
-
-    $searcher = [ADSISearcher]::new($filter)
-    $result = $searcher.FindOne()
-
-    if ( $result -and $result.Properties["adspath"] ) {
-        return [ADSI]$result.Properties["adspath"][0]
-    } else {
-        Write-Warning "'$Name' not found in AD."
-        return $null
     }
 }
 
@@ -284,6 +186,8 @@ C:\windows\ccm\CcmEval.exe /run
 
 # -------------------- RUN UNTIL ALL PASS OR TIMEOUT -------------------- #
 $maxAttempts = 5
+Write-Host "Pausing for 60 seconds before verifying client is operating correctly."
+Start-Sleep -Seconds 60
 for ( $i = 1; $i -le $maxAttempts; $i++ ) {
     Write-Host "---- Health Check Attempt $i ----" -ForegroundColor Cyan
 

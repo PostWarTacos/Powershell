@@ -1,30 +1,3 @@
-<#
-#   Intent: Based on US AFCENT System Center Configuration Manger Current Branch (SCCM-CB)
-#       guide to troubleshoot and repair SCCM clients
-#   Date: 24-Feb-25
-#   Author: Matthew Wurtz
-#>
-
-<# Repair-SCCM
-
-1. Delete SMS certs and reload service. Test if fixed, end actions if it is.
-
-2. Clean uninstall
-
-3. Remove both services “ccmsetup” and “SMS Agent Host”
-
-4. End all SCCM tasks
-
-5. Delete the folders for SCCM
-
-6. Delete the main registries associated with SCCM
-
-7. Install from \\slrcp223\SMS_PCI\Client\ccmsetup.exe
-
-8. Manually reinstall
-
-#>
-
 # ------------------- FUNCTIONS -------------------- #
 
 function Stop-ServiceWithTimeout {
@@ -73,34 +46,6 @@ function Stop-ServiceWithTimeout {
     }
 }
 
-function Get-SiteCode{
-    $domain = [System.DirectoryServices.ActiveDirectory.Domain]::GetCurrentDomain()
-    try {
-        # Get domain DN
-        $domainDN = "LDAP://CN=System Management,CN=System,DC=" + ($domain.Name -replace '\.', ',DC=')
-
-        # Set up searcher
-        $searcher = New-Object System.DirectoryServices.DirectorySearcher([ADSI]$domainDN)
-        $searcher.Filter = "(objectClass=mSSMSSite)"
-        $searcher.SearchScope = "OneLevel"
-        $searcher.PropertiesToLoad.Add("mSSMSSiteCode") | Out-Null
-
-        # Search and print
-        $results = $searcher.FindAll()
-        foreach ($result in $results) {
-            $code = $result.Properties["mSSMSSiteCode"]
-        } 
-    } Catch {
-        if ( $domain -match "DDS" ) {
-            $code = "DDS"
-        }
-        elseif ( $domain -match "DPOS" ) {
-            $code = "PCI"
-        }
-    }
-    return $code
-}
-
 function Update-HealthLog {
     [CmdletBinding()]
     param (
@@ -131,56 +76,6 @@ function Update-HealthLog {
 
     if ($PSBoundParameters.ContainsKey('Return')) {
         $null = return $message | Out-Null
-    }
-}
-
-function Test-DirsMatch {
-    param (
-        [Parameter(Mandatory)]
-        [string]$PathA,
-
-        [Parameter(Mandatory)]
-        [string]$PathB,
-
-        [ValidateSet("MD5","SHA1","SHA256")]
-        [string]$Algorithm = "SHA256"
-    )
-
-    $zipA = [System.IO.Path]::ChangeExtension((New-TemporaryFile).FullName, ".zip")
-    $zipB = [System.IO.Path]::ChangeExtension((New-TemporaryFile).FullName, ".zip")
-    
-    try {
-        Compress-Archive -Path "$PathA\*" -DestinationPath $zipA -Force -Verbose
-        Compress-Archive -Path "$PathB\*" -DestinationPath $zipB -Force -Verbose
-
-        $hashA = Get-FileHash -Path $zipA -Algorithm $Algorithm
-        $hashB = Get-FileHash -Path $zipB -Algorithm $Algorithm
-
-        return ( $hashA.Hash -eq $hashB.Hash )
-    }
-    finally {
-        Remove-Item $zipA, $zipB -Force -ErrorAction SilentlyContinue
-    }
-}
-
-function Find-ADSIObject {
-    [CmdletBinding()]
-    param (
-        [Parameter(Mandatory)]
-        [string]$Name
-    )
-
-    # Map LDAP filter
-    $filter = "(&(objectClass=computer)(sAMAccountName=$Name`$))"
-
-    $searcher = [ADSISearcher]::new($filter)
-    $result = $searcher.FindOne()
-
-    if ( $result -and $result.Properties["adspath"] ) {
-        return [ADSI]$result.Properties["adspath"][0]
-    } else {
-        Write-Warning "'$Name' not found in AD."
-        return $null
     }
 }
 
@@ -252,10 +147,8 @@ function Run-HealthCheck {
 $healthLog = [System.Collections.ArrayList]@()
 
 # Used in final health check
-$maxAttempts = 5
+$maxAttempts = 3
 $success = $false
-
-$siteCode = Get-SiteCode
 
 # Directories
 $healthLogPath = "C:\drivers\ccm\logs"
@@ -272,31 +165,12 @@ if ( -not ( Test-Path $healthLogPath )) {
     mkdir $healthLogPath | Out-Null
 }
 
-<#
-# Check for directory used to install CCM
-$updatedInstaller = Test-DirsMatch -PathA $serverInstallerPath -PathB $localInstallerPath
-
-if ( -not ( $updatedInstaller )) {
-    $message = "$localInstallerPath doesn't contain the requesite files"
-    Update-HealthLog -path $healthLogPath -message $message -WriteHost -color Red
-    # Add computer to AD security group
-    $group = [ADSI]"LDAP://CN=POS_RepairIT,OU=POS_Groups,OU=Managed_e3_POS,DC=DPOS,DC=LOC"
-    $computer =  Find-ADSIObject -Name $( hostname )
-    $group.Add( $computer.adspath )
-    exit
-}
-Else { # Dirs match. Continue with repair.
-    $message = "$localInstallerPath contains requesite files. Continuing install."
-    Update-HealthLog -path $healthLogPath -message $message -WriteHost -color Green
-}
-#>
-
 # ------------------- MAIN SCRIPT -------------------- #
 
 Clear-Host
 
 $message = "Attempting repair actions on $(hostname)"
-Update-HealthLog -path $healthLogPath -Message $message -WriteHost -Color Cyan -Return
+Update-HealthLog -path $healthLogPath -Message $message -WriteHost -Color Cyan
 
 # Remove certs and restart service
 # Possible this is the only needed fix.
@@ -329,39 +203,44 @@ if ( $found ){
         # Announce success/fail
         if ( $success ) {
             $message = "Service restarted successfully and MP contacted. Assuming resolved, ending script."
-            Update-HealthLog -path $healthLogPath -message $message -WriteHost -color Green -return
-            exit
+            Update-HealthLog -path $healthLogPath -message $message -WriteHost -color Green
+            exit 0
         } else {
-            $message = "Failed to start service. Continuing with SCCM Client repair."
+            $message = "Failed to start service. Continuing with SCCM Client removal and reinstall."
             Update-HealthLog -path $healthLogPath -message $message -WriteHost -color Red -return
         }   
     }
     catch {
-           $message = "Failed to start service. Continuing with SCCM Client repair."
+           $message = "Failed to start service. Continuing with SCCM Client removal and reinstall."
             Update-HealthLog -path $healthLogPath -message $message -WriteHost -color Red -return
     }
 } Else {
-    $message = "CcmExec Service not installed. Continuing with SCCM Client repair."
-    Update-HealthLog -path $healthLogPath -message $message -WriteHost -color Yellow -return
+    $message = "CcmExec Service not installed. Continuing with SCCM Client removal and reinstall."
+    Update-HealthLog -path $healthLogPath -message $message -WriteHost -color Yellow
 }
 
 # Clean uninstall
-Write-Host "(Step 2 of 8) Performing complete clean uninstall." -ForegroundColor Cyan
+Write-Host "(Step 2 of 8) Performing SCCM uninstall." -ForegroundColor Cyan
 if ( Test-Path C:\Windows\ccmsetup\ccmsetup.exe ){
     try {
+        Get-Service -Name CcmExec -ErrorAction SilentlyContinue | Stop-Service -Force
+        Get-Service -Name ccmsetup -ErrorAction SilentlyContinue | Stop-Service -Force
         $proc = Start-Process -FilePath "C:\Windows\ccmsetup\ccmsetup.exe" -ArgumentList "/uninstall" -PassThru -Verbose
         $proc.WaitForExit()
+        if ( $proc.ExitCode -ne 0 ){
+            throw "SCCM uninstall failed with exit code $($proc.exitcode)"
+        }
         $message = "Ccmsetup.exe uninstalled."
-        Update-HealthLog -path $healthLogPath -message $message -WriteHost -color Green -return
+        Update-HealthLog -path $healthLogPath -message $message -WriteHost -color Green
     }
     catch {
-        $message = "Failed to uninstall ccm. Exiting script."
+        $message = "Failed to uninstall ccm. Exiting script. Caught error: $_"
         Update-HealthLog -path $healthLogPath -message $message -WriteHost -color Red -return
         exit 1
     }
 } else {
     $message = "Ccmsetup.exe not found."
-    Update-HealthLog -path $healthLogPath -message $message -WriteHost -color Yellow -return
+    Update-HealthLog -path $healthLogPath -message $message -WriteHost -color Yellow
 }
 
 # Remove both services “ccmsetup” and “SMS Agent Host”
@@ -376,7 +255,7 @@ foreach ( $service in $services ){
             Stop-ServiceWithTimeout $service
             sc delete $service -Force -ErrorAction SilentlyContinue
             $message = "$service service found and removed."
-            Update-HealthLog -path $healthLogPath -message $message -WriteHost -color Green -return   
+            Update-HealthLog -path $healthLogPath -message $message -WriteHost -color Green   
         }
         catch {
             $message = "Failed to stop and remove $service service. Continuing script but may cause issues."
@@ -384,7 +263,7 @@ foreach ( $service in $services ){
         }
     } else{
         $message = "$service service not found."
-        Update-HealthLog -path $healthLogPath -message $message -WriteHost -color Yellow -return
+        Update-HealthLog -path $healthLogPath -message $message -WriteHost -color Yellow
     }        
 }
 
@@ -402,7 +281,7 @@ foreach ( $file in $files ){
         try {
             Stop-Process $proc.Id -Force -ErrorAction SilentlyContinue
             $message = "$($proc.name) killed. Process was tied to $file."
-            Update-HealthLog -path $healthLogPath -message $message -WriteHost -color Green -return    
+            Update-HealthLog -path $healthLogPath -message $message -WriteHost -color Green    
         }
         catch {
             $message = "Failed to kill $proc process. Continuing script but may cause issues."
@@ -410,7 +289,7 @@ foreach ( $file in $files ){
         }
     } Else{
         $message = "Process tied to $file not found."
-        Update-HealthLog -path $healthLogPath -message $message -WriteHost -color Yellow -return
+        Update-HealthLog -path $healthLogPath -message $message -WriteHost -color Yellow
     }
 }
 
@@ -419,10 +298,11 @@ Write-Host "(Step 5 of 8) Deleting all SCCM folders and files." -ForegroundColor
 foreach ( $file in $files ){
     if ( Test-Path $file ){
         try {
+            $null = takeown /F $file /R /A /D Y 2>&1
             $ConfirmPreference = 'None'
             Remove-Item $file -Recurse -Force -ErrorAction SilentlyContinue
             $message = "$file found and removed."
-            Update-HealthLog -path $healthLogPath -message $message -WriteHost -color Green -return    
+            Update-HealthLog -path $healthLogPath -message $message -WriteHost -color Green    
         }
         catch {
             $message = "Failed to remove $file file(s). Continuing script but may cause issues."
@@ -430,7 +310,7 @@ foreach ( $file in $files ){
         }
     } else{
         $message = "$file not found."
-        Update-HealthLog -path $healthLogPath -message $message -WriteHost -color Yellow -return
+        Update-HealthLog -path $healthLogPath -message $message -WriteHost -color Yellow
     }
 }
 
@@ -445,14 +325,16 @@ $keys= @(
     "HKLM:\Software\Wow6432Node\Microsoft\ccmsetup",
     "HKLM:\System\CurrentControlSet\Services\CcmExec",
     "HKLM:\System\CurrentControlSet\Services\prepdrvr",
-    "HKLM:\System\CurrentControlSet\Services\eventlog\Application\Configuration Manager Agent"
+    "HKLM:\System\CurrentControlSet\Services\ccmsetup",
+    "HKLM:\System\CurrentControlSet\Services\eventlog\Application\Configuration Manager Agent",
+    "HKLM:\Software\Microsoft\SystemCertificates\SMS\Certificates\*"
 )
 foreach ( $key in $keys ){
     if( Test-Path $KEY ){
         try {
             Remove-Item $KEY -Recurse -Force -ErrorAction SilentlyContinue
             $message = "$KEY found and removed."
-            Update-HealthLog -path $healthLogPath -message $message -WriteHost -color Green -return    
+            Update-HealthLog -path $healthLogPath -message $message -WriteHost -color Green
         }
         catch {
             $message = "Failed to remove $key reg key. Continuing script but may cause issues."
@@ -460,69 +342,23 @@ foreach ( $key in $keys ){
         }
     } Else { 
         $message = "Could not find $KEY."
-        Update-HealthLog -path $healthLogPath -message $message -WriteHost -color Yellow -return
+        Update-HealthLog -path $healthLogPath -message $message -WriteHost -color Yellow
     }
 }
-<#
-# Reinstall SCCM
-Write-Host "(Step 7 of 8) Attempting reinstall." -ForegroundColor Cyan
+
+# Remove SCCM namespaces from WMI repository
+Write-Host "(Step 7 of 8) Remove SCCM namespaces from WMI repo." -ForegroundColor Cyan
 try {
-    # DDS
-    if ( $siteCode -eq "DDS") {
-        #$proc = Start-Process -FilePath "$localInstallerPath\ccmsetup.exe" -ArgumentList "/logon SMSSITECODE=$siteCode /mp:SCANZ223 FSP=VOTCZ223" -PassThru
-        $proc = Start-Process -FilePath "$localInstallerPath\ccmsetup.exe" -PassThru -Verbose
-    }
-    # DPOS
-    elseif ( $sitecode -eq "PCI" ) {
-        $proc = Start-Process -FilePath "$localInstallerPath\ccmsetup.exe" -ArgumentList "/logon SMSSITECODE=$siteCode" -PassThru
-    }
-       
-    $proc.WaitForExit()
-    $message = "Reinstall complete."
-    Update-HealthLog -path $healthLogPath -message $message -WriteHost -color Cyan -return
-    $message = "Waiting for service to be installed."
-    Update-HealthLog -path $healthLogPath -message $message -WriteHost
-    while ( -not ( Get-Service "ccmexec" -ErrorAction SilentlyContinue )) {
-        Start-Sleep -Seconds 120
-    }
-    
-    Update-HealthLog -path $healthLogPath -message "Waiting for service to show running." -WriteHost
-    while (( Get-Service "ccmexec").Status -ne "Running" ) {
-        Start-Sleep -Seconds 120
-    }
+    Get-CimInstance -Query "Select * From __Namespace Where Name='CCM'" -Namespace "root" -ErrorAction SilentlyContinue | Remove-CimInstance -Verbose -Confirm:$false -ErrorAction SilentlyContinue
+    Get-CimInstance -Query "Select * From __Namespace Where Name='CCMVDI'" -Namespace "root" -ErrorAction SilentlyContinue | Remove-CimInstance -Verbose -Confirm:$false -ErrorAction SilentlyContinue
+    Get-CimInstance -Query "Select * From __Namespace Where Name='SmsDm'" -Namespace "root" -ErrorAction SilentlyContinue | Remove-CimInstance -Verbose -Confirm:$false -ErrorAction SilentlyContinue
+    Get-CimInstance -Query "Select * From __Namespace Where Name='sms'" -Namespace "root\cimv2" -ErrorAction SilentlyContinue | Remove-CimInstance -Verbose -Confirm:$false -ErrorAction SilentlyContinue
+    $message = "Namespace(s) found and removed."
+    Update-HealthLog -path $healthLogPath -message $message -WriteHost -color Green
 }
-Catch{
-    $message = "Install failed."
+catch {
+    $message = "Failed to remove namespace(s). Continuing script but may cause issues."
     Update-HealthLog -path $healthLogPath -message $message -WriteHost -color Red -return
-    exit 1
 }
 
-# -------------------- REGISTER AND RUN CCMEVAL CHECK -------------------- #
-
-# CCMEval.exe actions
-Write-Host "(Step 8 of 8) Registering CcmEval. Running CcmEval check." -ForegroundColor Cyan
-C:\windows\ccm\CcmEval.exe /register
-C:\windows\ccm\CcmEval.exe /run
-
-# -------------------- RUN UNTIL ALL PASS OR TIMEOUT -------------------- #
-
-for ( $i = 1; $i -le $maxAttempts; $i++ ) {
-    Write-Host "---- Health Check Attempt $i ----" -ForegroundColor Cyan
-
-    if ( Run-HealthCheck ) {
-        Write-Host "All SCCM health checks passed!" -ForegroundColor Green
-        $success = $true
-        break
-    }
-
-    if ( $i -lt $maxAttempts ) {
-        Start-Sleep -Seconds 120
-    }
-}
-
-if ( -not $success ) {
-    Write-Host "Health checks did not pass after $maxAttempts attempts." -ForegroundColor Red
-    exit 1
-}
-#>
 $healthLog >> $healthLogPath\HealthCheck.txt

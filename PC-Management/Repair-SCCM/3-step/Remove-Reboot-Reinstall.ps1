@@ -7,6 +7,8 @@ $reinstall = "C:\Users\wurtzmt-a\Documents\Coding\Powershell\reinstall-sccm.ps1"
 # remove
 Invoke-script -computername $computer -filepath $remove
 
+$fileCheck = $null
+
 $fileCheck = Invoke-Command $computer {
     # Check files
     function Get-ExeVersion {
@@ -21,7 +23,7 @@ $fileCheck = Invoke-Command $computer {
         }
     }
 
-    $correctVersion = "5.00.9132.1023"
+    $correctVersion = "5.00.9132.1011"
     $targetPath = "C:\drivers\ccm\ccmsetup"
     $valid = $false
 
@@ -65,17 +67,24 @@ $fileCheck = Invoke-Command $computer {
     }
 
     if ( -not $valid ) {
-        Write-Warning "No valid ccmsetup.exe found. Exiting."
         return "Not Found"
-        write-host "Rebooting computer to complete uninstall."
-        restart-computer -force
+        Write-Warning "No valid ccmsetup.exe found."
+        #write-host "Rebooting computer to complete uninstall."
+        #restart-computer -force
     }
 
     Write-Host "Valid installer prepared. Proceeding..."
 }
 
 if ( $fileCheck -eq "Not Found" ){
-    exit
+    write-host "Copying files from server."
+    $source = "\\scanz223\SMS_DDS\Client"
+    $destination = "\\$computer\C$\drivers\ccm\ccmsetup"
+    #robocopy $source $destination /E /Z /MT:4 /R:2 /W:5 /NP /NFL /NDL /NJH /NJS
+    robocopy $source $destination /E /Z /MT:4 /R:1 /W:2 /NP /V #/TEE /LOG+:C:\drivers\ccm\robocopy_perf.log
+    write-host "Copy complete."
+    #write-host "Exiting session."
+    #exit
 }
 
 # reboot and wait
@@ -99,3 +108,4 @@ Start-Sleep -Seconds 300
 
 # reinstall
 Invoke-script -computername $computer -filepath $reinstall
+ 
