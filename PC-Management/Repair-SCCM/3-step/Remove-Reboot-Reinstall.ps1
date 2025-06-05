@@ -5,30 +5,7 @@ $remove = "C:\Users\wurtzmt-a\Documents\Coding\Powershell\3-step\Remove-SCCM.ps1
 $reinstall = "C:\Users\wurtzmt-a\Documents\Coding\Powershell\3-step\reinstall-sccm.ps1"
 
 # Uninstall and Remove
-try {
-    $exitCode = Invoke-script -computername $computer -filepath $remove -ErrorAction stop
-}
-catch{
-    exit 99
-}
-
-# Null exit codes
-if ($null -eq $exitCode) {
-    Write-Warning "Invoke-Script returned null — defaulting to exit code 1"
-    $exitCode = 1
-}
-
-# Error handling
-$EXIT_SUCCESS = 0
-$EXIT_ERROR_COUNT = 1
-$EXIT_INTERACTION_REQ = 2
-
-switch ($exitCode) {
-    $EXIT_SUCCESS { Write-Host "Success – continuing..." }
-    $EXIT_ERROR_COUNT { Write-Host "Error encountered"; exit 101 }
-    $EXIT_INTERACTION_REQ { Write-Host "User input required"; exit 102 }
-    default { Write-Host "Unknown exit code $exitCode"; exit $exitCode }
-}
+Invoke-script -computername $computer -filepath $remove
 
 # File Check
 $fileCheck = $null
@@ -127,26 +104,8 @@ do {
     }
 } while ( $currentBootTime -le $initialBootTime )
 
-Start-Sleep -Seconds 300
+Start-Sleep -Seconds 120
 
 # Reinstall
-try {
-    $exitCode = Invoke-script -computername $computer -filepath $reinstall -ErrorAction stop
-}
-catch{
-    $EXIT_SUCCESS = 0
-    $EXIT_HEALTH_CHECK = 1
-
-    switch ($exitCode) {
-        $EXIT_SUCCESS{
-            # Do nothing. Continue script
-        }
-        $EXIT_HEALTH_CHECK {
-            exit 201
-        }
-        default {
-            exit $exitCode
-        }
-    }
-}
- 
+Invoke-script -computername $computer -filepath $reinstall
+#Invoke-Command $computer -FilePath $reinstall -Verbose

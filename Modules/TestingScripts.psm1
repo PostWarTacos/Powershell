@@ -55,18 +55,13 @@ function Invoke-Script(){
     $session = New-PSSession -ComputerName $ComputerName
 
     # Execute it remotely
-    #Invoke-Command -Session $session -FilePath $FilePath
-    $exitCode = Invoke-Command -Session $session -ScriptBlock {
-        & using:$FilePath
-        return $LASTEXITCODE
-    }
+    Invoke-Command -Session $session -FilePath $FilePath
 
     # Clean up session
     Remove-PSSession $session
 
     Stop-Transcript
 
-    return $exitCode
 }
 
 Export-ModuleMember Add-HealthLog, Invoke-Script
