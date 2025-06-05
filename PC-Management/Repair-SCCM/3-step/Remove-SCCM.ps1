@@ -208,7 +208,7 @@ if ( $found ){
         if ( $success ) {
             $message = "Service restarted successfully and MP contacted. Assuming resolved, ending script."
             Update-HealthLog -path $healthLogPath -message $message -WriteHost -color Green
-            exit 102
+            return 102
         } else {
             $message = "Failed to start service. Continuing with SCCM Client removal and reinstall."
             Update-HealthLog -path $healthLogPath -message $message -WriteHost -color Red -return
@@ -238,17 +238,16 @@ if ( Test-Path C:\Windows\ccmsetup\ccmsetup.exe ){
         Update-HealthLog -path $healthLogPath -message $message -WriteHost -color Green
     }
     catch {
-        $message = "Failed to uninstall ccm. Exiting script. Caught error: $_"
+        $message = "Failed to uninstall ccm. Ending script. Caught error: $_"
         Update-HealthLog -path $healthLogPath -message $message -WriteHost -color Red -return
-        $critErrors = $true
-        exit $_
+        return $_
     }
 } else {
     $message = "Ccmsetup.exe not found."
     Update-HealthLog -path $healthLogPath -message $message -WriteHost -color Yellow
 }
 
-# Remove both services “ccmsetup” and “SMS Agent Host”
+# Remove both services â€œccmsetupâ€ and â€œSMS Agent Hostâ€
 Write-Host "(Step 3 of 8) Stopping and removing CcmExec and CcmSetup services." -ForegroundColor Cyan
 $services = @(
     "ccmexec",
@@ -295,7 +294,7 @@ foreach ( $file in $files ){
             $errorCount++
         }
     } Else{
-        $message = "Process tied to $file not found."
+        $message = "Could not find a process tied to $file."
         Update-HealthLog -path $healthLogPath -message $message -WriteHost -color Yellow
     }
 }
@@ -358,10 +357,10 @@ foreach ( $key in $keys ){
 # Remove SCCM namespaces from WMI repository
 Write-Host "(Step 7 of 8) Remove SCCM namespaces from WMI repo." -ForegroundColor Cyan
 try {
-    Get-CimInstance -Query "Select * From __Namespace Where Name='CCM'" -Namespace "root" -ErrorAction SilentlyContinue | Remove-CimInstance -Verbose -Confirm:$false -ErrorAction SilentlyContinue
-    Get-CimInstance -Query "Select * From __Namespace Where Name='CCMVDI'" -Namespace "root" -ErrorAction SilentlyContinue | Remove-CimInstance -Verbose -Confirm:$false -ErrorAction SilentlyContinue
-    Get-CimInstance -Query "Select * From __Namespace Where Name='SmsDm'" -Namespace "root" -ErrorAction SilentlyContinue | Remove-CimInstance -Verbose -Confirm:$false -ErrorAction SilentlyContinue
-    Get-CimInstance -Query "Select * From __Namespace Where Name='sms'" -Namespace "root\cimv2" -ErrorAction SilentlyContinue | Remove-CimInstance -Verbose -Confirm:$false -ErrorAction SilentlyContinue
+    Get-CimInstance -Query "Select * From __Namespace Where Name='CCM'" -Namespace "root" -ErrorAction SilentlyContinue | Remove-CimInstance -Confirm:$false -ErrorAction SilentlyContinue
+    Get-CimInstance -Query "Select * From __Namespace Where Name='CCMVDI'" -Namespace "root" -ErrorAction SilentlyContinue | Remove-CimInstance -Confirm:$false -ErrorAction SilentlyContinue
+    Get-CimInstance -Query "Select * From __Namespace Where Name='SmsDm'" -Namespace "root" -ErrorAction SilentlyContinue | Remove-CimInstance -Confirm:$false -ErrorAction SilentlyContinue
+    Get-CimInstance -Query "Select * From __Namespace Where Name='sms'" -Namespace "root\cimv2" -ErrorAction SilentlyContinue | Remove-CimInstance -Confirm:$false -ErrorAction SilentlyContinue
     $message = "Namespace(s) found and removed."
     Update-HealthLog -path $healthLogPath -message $message -WriteHost -color Green
 }
@@ -377,8 +376,10 @@ if ( $errorCount -gt 0 ){
         # Do nothing
     }
     elseif( $continue -eq "n" ){
-        exit 101
+        return 101
     }
 }
+
+Write-Host "Uninstall and wipe of SCCM completed." -ForegroundColor Green
 
 $healthLog >> $healthLogPath\HealthCheck.txt

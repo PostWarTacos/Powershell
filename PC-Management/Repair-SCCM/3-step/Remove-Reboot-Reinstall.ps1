@@ -1,34 +1,33 @@
 Import-Module C:\Users\wurtzmt-a\Documents\Coding\Powershell\TestingScripts.psm1
 
 $computer = Read-host "Enter Computername"
-$remove = "C:\Users\wurtzmt-a\Documents\Coding\Powershell\Remove-SCCM.ps1"
-$reinstall = "C:\Users\wurtzmt-a\Documents\Coding\Powershell\reinstall-sccm.ps1"
+$remove = "C:\Users\wurtzmt-a\Documents\Coding\Powershell\3-step\Remove-SCCM.ps1"
+$reinstall = "C:\Users\wurtzmt-a\Documents\Coding\Powershell\3-step\reinstall-sccm.ps1"
 
 # Uninstall and Remove
 try {
     $exitCode = Invoke-script -computername $computer -filepath $remove -ErrorAction stop
 }
 catch{
-    $EXIT_SUCCESS = 0
-    $EXIT_ERROR_COUNT = 1
-    $EXIT_INTERACTION_REQ = 2
+    exit 99
+}
 
-    switch ($exitCode) {
-        $EXIT_SUCCESS{
-            # Do nothing. Continue script
-        }
-        $EXIT_ERROR_COUNT {
-            write-host "Non-critical error(s). Please investigate."
-            exit 101
-        }
-        $EXIT_INTERACTION_REQ {
-            write-host "User interaction is required."
-            exit 102
-        }
-        default {
-            exit $exitCode
-        }
-    }
+# Null exit codes
+if ($null -eq $exitCode) {
+    Write-Warning "Invoke-Script returned null — defaulting to exit code 1"
+    $exitCode = 1
+}
+
+# Error handling
+$EXIT_SUCCESS = 0
+$EXIT_ERROR_COUNT = 1
+$EXIT_INTERACTION_REQ = 2
+
+switch ($exitCode) {
+    $EXIT_SUCCESS { Write-Host "Success – continuing..." }
+    $EXIT_ERROR_COUNT { Write-Host "Error encountered"; exit 101 }
+    $EXIT_INTERACTION_REQ { Write-Host "User input required"; exit 102 }
+    default { Write-Host "Unknown exit code $exitCode"; exit $exitCode }
 }
 
 # File Check
