@@ -56,10 +56,11 @@ foreach ( $t in $targets ){
 
     Write-Host "Starting SCCM remediation on $t" -ForegroundColor Green
     
+    Write-Host "Testing network connection to $t"
     $failedToConnect = if ( -not ( Test-Connection $t -Count 2 -Quiet )){
         Write-host "Unable to connect to $t. Skipping it."
         Write-Output $t
-        break
+        continue
     }
 
     pause
