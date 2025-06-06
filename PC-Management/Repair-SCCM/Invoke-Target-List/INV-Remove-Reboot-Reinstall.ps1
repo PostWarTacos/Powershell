@@ -402,6 +402,10 @@ foreach ( $t in $targets ){
     # End of Uninstall and Remove invoke-command
     # ------------------------------------------------------------
 
+    if ( $removalResult -eq $false ){
+        continue
+    }
+
     # -------------------- FILE CHECK -------------------- #
     Write-Host "(Step 8 of 12) Verifying valid installer exe on machine." -ForegroundColor Cyan
 
