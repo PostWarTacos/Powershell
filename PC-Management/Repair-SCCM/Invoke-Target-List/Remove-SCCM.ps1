@@ -79,67 +79,6 @@ function Update-HealthLog {
     }
 }
 
-function Run-HealthCheck {
-
-    $allPassed = $true
-
-    # Check if SCCM Client is installed
-    if ( Test-Path "C:\Windows\CCM\CcmExec.exe" ) {
-        Update-HealthLog -path $healthLogPath -message "Found CcmExec.exe. SCCM installed." -WriteHost -color Green
-    } else {
-        Update-HealthLog -path $healthLogPath -message "Cannot find CcmExec.exe." -WriteHost -color Red
-        $allPassed = $false
-    }
-
-    # Check if SCCM Client Service is running
-    $service = Get-Service -Name CcmExec -ErrorAction SilentlyContinue
-    if ( $service.Status -eq 'Running' ) {
-        Update-HealthLog -path $healthLogPath -message "Found CcmExec service and it is running." -WriteHost -color Green
-    } elseif ( $service.Status -ne 'Running' ) {
-        Update-HealthLog -path $healthLogPath -message "Found CcmExec service but it is NOT running." -WriteHost -color Red
-        $allPassed = $false
-    } else {
-        Update-HealthLog -path $healthLogPath -message "CcmExec service could not be found." -WriteHost -color Red
-        $allPassed = $false
-    }
-
-    # Check Client Version
-    $smsClient = Get-CimInstance -Namespace "root\ccm" -ClassName SMS_Client -ErrorAction SilentlyContinue
-    if ( $smsClient.ClientVersion ) {
-        Update-HealthLog -path $healthLogPath -message "SCCM Client Version: $($smsClient.ClientVersion)" -WriteHost -color Green
-    } else {
-        Update-HealthLog -path $healthLogPath -message "Client Version not found." -WriteHost -color Red
-        $allPassed = $false
-    }
-
-    # Check Management Point Site Name
-    $mp = Get-CimInstance -Namespace "root\ccm" -ClassName SMS_Authority -ErrorAction SilentlyContinue
-    if ( $mp.Name ) {
-        Update-HealthLog -path $healthLogPath -message "SCCM Site found: $($mp.Name)" -WriteHost -color Green
-    } else {
-        Update-HealthLog -path $healthLogPath -message "SMS_Authority.Name property not found." -WriteHost -color Red
-        $allPassed = $false
-    }
-
-    # Check Client ID
-    $ccmClient = Get-CimInstance -Namespace "root\ccm" -ClassName CCM_Client -ErrorAction SilentlyContinue
-    if ( $ccmClient.ClientId ) {
-        Update-HealthLog -path $healthLogPath -message "SCCM Client Client ID found: $($ccmClient.ClientId)" -WriteHost -color Green
-    } else {
-        Update-HealthLog -path $healthLogPath -message "Client Id property not found." -WriteHost -color Red
-        $allPassed = $false
-    }
-
-    # Check Management Point FQDN
-    if ( $mp.CurrentManagementPoint ) {
-        Update-HealthLog -path $healthLogPath -message "SCCM Management Point found: $($mp.CurrentManagementPoint)" -WriteHost -color Green
-    } else {
-        Update-HealthLog -path $healthLogPath -message "Management Point property not found." -WriteHost -color Red
-        $allPassed = $false
-    }
-
-    return $allPassed
-}
 
 # ------------------- VARIABLES -------------------- #
 
@@ -148,19 +87,11 @@ $healthLog = [System.Collections.ArrayList]@()
 
 # Error handling
 $errorCount = 0
-$critErrors = $false
-
-# Used in final health check
-$maxAttempts = 3
+# $critErrors = $false
 $success = $false
 
 # Directories
 $healthLogPath = "C:\drivers\ccm\logs"
-$localInstallerPath = "C:\drivers\ccm\ccmsetup"
-
-# Domain Specific Variables
-#$serverInstallerPath = "\\slrcp223\SMS_PCI\Client" # PCI
-#$serverInstallerPath = "\\scanz223\SMS_DDS\Client" # DDS
 
 # ------------------- CREATE DIRECTORIES -------------------- #
 

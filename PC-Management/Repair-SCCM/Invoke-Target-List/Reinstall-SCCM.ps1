@@ -1,27 +1,10 @@
 function Get-SiteCode{
     $domain = [System.DirectoryServices.ActiveDirectory.Domain]::GetCurrentDomain()
-    try {
-        # Get domain DN
-        $domainDN = "LDAP://CN=System Management,CN=System,DC=" + ($domain.Name -replace '\.', ',DC=')
-
-        # Set up searcher
-        $searcher = New-Object System.DirectoryServices.DirectorySearcher([ADSI]$domainDN)
-        $searcher.Filter = "(objectClass=mSSMSSite)"
-        $searcher.SearchScope = "OneLevel"
-        $searcher.PropertiesToLoad.Add("mSSMSSiteCode") | Out-Null
-
-        # Search and print
-        $results = $searcher.FindAll()
-        foreach ($result in $results) {
-            $code = $result.Properties["mSSMSSiteCode"]
-        } 
-    } Catch {
-        if ( $domain -match "DDS" ) {
-            $code = "DDS"
-        }
-        elseif ( $domain -match "DPOS" ) {
-            $code = "PCI"
-        }
+    if ( $domain -match "DDS" ) {
+        $code = "DDS"
+    }
+    elseif ( $domain -match "DPOS" ) {
+        $code = "PCI"
     }
     return $code
 }
@@ -127,21 +110,18 @@ function Run-HealthCheck {
 $healthLog = [System.Collections.ArrayList]@()
 
 # Used in final health check
-$maxAttempts = 5
+$maxAttempts = 3
 $success = $false
-
-$siteCode = Get-SiteCode
 
 # Directories
 $healthLogPath = "C:\drivers\ccm\logs"
 $localInstallerPath = "C:\drivers\ccm\ccmsetup"
 
-# Domain Specific Variables
-#$serverInstallerPath = "\\slrcp223\SMS_PCI\Client" # PCI
-#$serverInstallerPath = "\\scanz223\SMS_DDS\Client" # DDS
+# Get site code. Might remove from script
+$siteCode = Get-SiteCode
 
+# -------------------- Reinstall SCCM -------------------- #
 
-# Reinstall SCCM
 Write-Host "(Step 7 of 8) Attempting reinstall." -ForegroundColor Cyan
 try {
     # DDS
@@ -185,7 +165,6 @@ C:\windows\ccm\CcmEval.exe /register
 C:\windows\ccm\CcmEval.exe /run
 
 # -------------------- RUN UNTIL ALL PASS OR TIMEOUT -------------------- #
-$maxAttempts = 5
 Write-Host "Pausing for 60 seconds before verifying client is operating correctly."
 Start-Sleep -Seconds 60
 for ( $i = 1; $i -le $maxAttempts; $i++ ) {

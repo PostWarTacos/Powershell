@@ -1,32 +1,40 @@
 Import-Module C:\Users\wurtzmt-a\Documents\Coding\Powershell\TestingScripts.psm1
 
+# -------------------- VARIABLES -------------------- #
+
 $computer = Read-host "Enter Computername"
+
+# Local URLs
 $remove = "C:\Users\wurtzmt-a\Documents\Coding\Powershell\3-step\Remove-SCCM.ps1"
 $reinstall = "C:\Users\wurtzmt-a\Documents\Coding\Powershell\3-step\reinstall-sccm.ps1"
 
-# Uninstall and Remove
+# URLs for copying exe to machine
+$domain = [System.DirectoryServices.ActiveDirectory.Domain]::GetCurrentDomain()
+ if ( $domain -match "DDS" ) {
+    $cpSource = "\\scanz223\SMS_DDS\Client" # DDS
+}
+elseif ( $domain -match "DPOS" ) {
+    $cpSource = "\\slrcp223\SMS_PCI\Client" # PCI
+}
+$cpDestination = "\\$computer\C$\drivers\ccm\ccmsetup"
+
+# Check exe on target machine
+$exeOnSrvr = Join-Path $cpSource "ccmsetup.exe"
+$correctVersion = ([System.Diagnostics.FileVersionInfo]::GetVersionInfo($exeOnSrvr)).FileVersion
+$targetPath = "C:\drivers\ccm\ccmsetup"
+
+# -------------------- Uninstall and Remove -------------------- #
+
 Invoke-script -computername $computer -filepath $remove
 
-# File Check
+# -------------------- File Check -------------------- #
+
 $fileCheck = $null
 $fileCheck = Invoke-Command $computer {
-    # Check files
-    function Get-ExeVersion {
-        param (
-            [string]$ExePath
-        )
-        try {
-            return ([System.Diagnostics.FileVersionInfo]::GetVersionInfo($ExePath)).FileVersion
-        }
-        catch {
-            return $null
-        }
-    }
-
-    $correctVersion = "5.00.9132.1011"
-    $targetPath = "C:\drivers\ccm\ccmsetup"
+    
     $valid = $false
 
+    # Various locations the ccmsetup.exe can be found. Actions to move it to 1 dedicated location.
     $locations = @(
         @{ Path = "C:\drivers\ccm\ccmsetup"; Action = { Write-Host "Correct location and version. Doing nothing." } },
     
@@ -36,26 +44,27 @@ $fileCheck = Invoke-Command $computer {
         }},
     
         @{ Path = "C:\drivers\ccmsetup"; Action = {
-            Write-Host "Moving contents to $targetPath..."
-            if ( -not ( Test-Path $targetPath )) { New-Item -ItemType Directory -Path $targetPath | Out-Null }
-            Move-Item -Path "C:\drivers\ccmsetup\*" -Destination $targetPath -Force
+            Write-Host "Moving contents to $using:targetPath..."
+            if ( -not ( Test-Path $using:targetPath )) { New-Item -ItemType Directory -Path $using:targetPath | Out-Null }
+            Move-Item -Path "C:\drivers\ccmsetup\*" -Destination $using:targetPath -Force
             Remove-Item -Path "C:\drivers\ccmsetup" -Recurse -Force
         }},
     
         @{ Path = "C:\drivers\ccm"; Action = {
-            Write-Host "Moving contents to $targetPath..."
-            if ( -not ( Test-Path $targetPath )) { New-Item -ItemType Directory -Path $targetPath | Out-Null }
-            Move-Item -Path "C:\drivers\ccm\*" -Destination $targetPath -Force
+            Write-Host "Moving contents to $using:targetPath..."
+            if ( -not ( Test-Path $using:targetPath )) { New-Item -ItemType Directory -Path $using:targetPath | Out-Null }
+            Move-Item -Path "C:\drivers\ccm\*" -Destination $using:targetPath -Force
         }}
     )
 
+    # Checks each location above, verifies version number, and then performs the action if needed 
     foreach ( $entry in $locations ) {
         $exePath = Join-Path $entry.Path "ccmsetup.exe"
 
         if ( Test-Path $exePath ) {
-            $ver = Get-ExeVersion $exePath
+            $ver = ([System.Diagnostics.FileVersionInfo]::GetVersionInfo($exePath)).FileVersion
 
-            if ( $ver -eq $correctVersion ) {
+            if ( $ver -eq $using:correctVersion ) {
                 & $entry.Action
                 $valid = $true
                 break
@@ -69,25 +78,21 @@ $fileCheck = Invoke-Command $computer {
     if ( -not $valid ) {
         return "Not Found"
         Write-Warning "No valid ccmsetup.exe found."
-        #write-host "Rebooting computer to complete uninstall."
-        #restart-computer -force
+        # write-host "Rebooting computer to complete uninstall."
+        # restart-computer -force
     }
-
-    Write-Host "Valid installer prepared. Proceeding..."
 }
 
+# Copies files from server if needed
 if ( $fileCheck -eq "Not Found" ){
     write-host "Copying files from server."
-    $source = "\\scanz223\SMS_DDS\Client"
-    $destination = "\\$computer\C$\drivers\ccm\ccmsetup"
-    #robocopy $source $destination /E /Z /MT:4 /R:2 /W:5 /NP /NFL /NDL /NJH /NJS
-    robocopy $source $destination /E /Z /MT:4 /R:1 /W:2 /NP /V #/TEE /LOG+:C:\drivers\ccm\robocopy_perf.log
+    # robocopy $cpSource $cpDestination /E /Z /MT:4 /R:2 /W:5 /NP /NFL /NDL /NJH /NJS
+    robocopy $cpSource $cpDestination /E /Z /MT:4 /R:1 /W:2 /NP /V
     write-host "Copy complete."
-    #write-host "Exiting session."
-    #exit
 }
 
-# Reboot and Wait
+# -------------------- Reboot and Wait -------------------- #
+
 $initialBootTime = invoke-command -ComputerName $computer { 
     ( Get-CimInstance -ComputerName $Computer -ClassName Win32_OperatingSystem ).LastBootUpTime
 }
@@ -104,8 +109,10 @@ do {
     }
 } while ( $currentBootTime -le $initialBootTime )
 
+# Delay to wait for computer to boot
 Start-Sleep -Seconds 120
 
-# Reinstall
+# -------------------- Reinstall -------------------- #
+
 Invoke-script -computername $computer -filepath $reinstall
-#Invoke-Command $computer -FilePath $reinstall -Verbose
+# Invoke-Command $computer -FilePath $reinstall -Verbose
