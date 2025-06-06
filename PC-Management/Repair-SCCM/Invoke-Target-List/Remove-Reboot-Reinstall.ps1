@@ -26,6 +26,10 @@ $initialDirectory = "C:\"
 $targetFile = Get-FileName
 $targets = Get-Content $targetFile
 
+# URLs on local machine
+$remediationSuccess = "C:\"
+$remediationFail = "C:\"
+
 # File Check
 $targetPath = "C:\drivers\ccm\ccmsetup"
 $exeOnSrvr = Join-Path $cpSource "ccmsetup.exe"
@@ -52,11 +56,15 @@ foreach ( $t in $targets ){
 
     Write-Host "Starting SCCM remediation on $t" -ForegroundColor Green
 
+    # Reset variables to ensure correct results
+    $removalResult = $null
+    $installResult = $null
+
     # ------------------------------------------------------------
     # Start of Uninstall and Remove invoke-command
     # ------------------------------------------------------------
 
-    invoke-command -ComputerName $t -ArgumentList $healthLogPath {
+    $removalResult = invoke-command -ComputerName $t -ArgumentList $healthLogPath {
         param($healthLogPath_pass)
 
         # Define scoped log array
@@ -214,32 +222,33 @@ foreach ( $t in $targets ){
 
         # Clean uninstall
         Write-Host "(Step 2 of 8) Performing SCCM uninstall." -ForegroundColor Cyan
-        if ( Test-Path C:\Windows\ccmsetup\ccmsetup.exe ){
-            try {
-                Get-Service -Name CcmExec -ErrorAction SilentlyContinue | Stop-Service -Force
-                Get-Service -Name ccmsetup -ErrorAction SilentlyContinue | Stop-Service -Force
+            if ( Test-Path C:\Windows\ccmsetup\ccmsetup.exe ){
+                try {
+                    Get-Service -Name CcmExec -ErrorAction SilentlyContinue | Stop-Service -Force
+                    Get-Service -Name ccmsetup -ErrorAction SilentlyContinue | Stop-Service -Force
 
-                # Start ccmsetup uninstall process in silent mode and wait for it to finish.
-                $proc = Start-Process -FilePath "C:\Windows\ccmsetup\ccmsetup.exe" -ArgumentList "/uninstall" -PassThru -Verbose
-                $proc.WaitForExit()
+                    # Start ccmsetup uninstall process in silent mode and wait for it to finish.
+                    $proc = Start-Process -FilePath "C:\Windows\ccmsetup\ccmsetup.exe" -ArgumentList "/uninstall" -PassThru -Verbose
+                    $proc.WaitForExit()
 
-                # Check uninstall result. If exit code is non-zero, log failure and exit.
-                if ( $proc.ExitCode -ne 0 ){
-                    throw "SCCM uninstall failed with exit code $($proc.exitcode)"
+                    # Check uninstall result. If exit code is non-zero, log failure and exit.
+                    if ( $proc.ExitCode -ne 0 ){
+                        throw "SCCM uninstall failed with exit code $($proc.exitcode)"
+                    }
+                    $message = "Ccmsetup.exe uninstalled."
+                    Update-HealthLog -path $healthLogPath_pass -message $message -WriteHost -color Green
                 }
-                $message = "Ccmsetup.exe uninstalled."
-                Update-HealthLog -path $healthLogPath_pass -message $message -WriteHost -color Green
+                catch {
+                    $message = "Failed to uninstall ccm. Ending script. Caught error: $_"
+                    Update-HealthLog -path $healthLogPath_pass -message $message -WriteHost -color Red -return
+                    return $false
+                }
             }
-            catch {
-                $message = "Failed to uninstall ccm. Ending script. Caught error: $_"
-                Update-HealthLog -path $healthLogPath_pass -message $message -WriteHost -color Red -return
-                return $_
+            else {
+                $message = "Ccmsetup.exe not found."
+                Update-HealthLog -path $healthLogPath_pass -message $message -WriteHost -color Yellow
             }
-        } else {
-            $message = "Ccmsetup.exe not found."
-            Update-HealthLog -path $healthLogPath_pass -message $message -WriteHost -color Yellow
-        }
-
+        
         # Remove both services ccmexec and ccmsetup
         Write-Host "(Step 3 of 8) Stopping and removing CcmExec and CcmSetup services." -ForegroundColor Cyan
         $services = @(
@@ -370,7 +379,7 @@ foreach ( $t in $targets ){
                 # Do nothing
             }
             elseif( $continue -eq "n" ){
-                return 101
+                $endAfterLog = $true
             }
         }
 
@@ -378,7 +387,8 @@ foreach ( $t in $targets ){
 
         # Write log to file
         $logFile = Join-Path $healthLogPath_pass "HealthCheck.txt"
-        $healthLog | Out-File -Append -FilePath $logFile -Encoding UTF8        
+        $healthLog | Out-File -Append -FilePath $logFile -Encoding UTF8
+        if ( $endAfterLog ){ return $false }
     } 
 
     # ------------------------------------------------------------
@@ -488,7 +498,7 @@ foreach ( $t in $targets ){
     # Start of Reinstall invoke-command
     # ----------------------------------------
 
-    Invoke-Command -computername $t -ArgumentList $healthLogPath {
+    $installResult = Invoke-Command -computername $t -ArgumentList $healthLogPath {
         param($healthLogPath_pass)
 
         # Define scoped log array
@@ -649,7 +659,7 @@ foreach ( $t in $targets ){
         Catch{
             $message = "Install failed. Caught error: $_"
             Update-HealthLog -path $healthLogPath_pass -message $message -WriteHost -color Red -return
-            return $_
+            return $false
         }
 
         # -------------------- REGISTER AND RUN CCMEVAL CHECK -------------------- #
@@ -680,12 +690,13 @@ foreach ( $t in $targets ){
 
         if ( -not $success ) {
             Write-Host "Health checks did not pass after $maxAttempts attempts." -ForegroundColor Red
-            return 201
+            return $false
         }
 
         # Write log to file
         $logFile = Join-Path $healthLogPath_pass "HealthCheck.txt"
         $healthLog | Out-File -Append -FilePath $logFile -Encoding UTF8
+        return $true
     }
 
     # ----------------------------------------
@@ -693,6 +704,16 @@ foreach ( $t in $targets ){
     # ----------------------------------------
 
     Write-Host "Completed work on $t" -ForegroundColor Green
+
+    if ( $removalResult -eq $false ){
+        "$t failed to uninstall" | Out-File -Append -FilePath $remediationFail -Encoding UTF8
+    }
+    elseif ( $installResult -eq $false ) {
+        "$t failed to install" | Out-File -Append -FilePath $remediationFail -Encoding UTF8
+    }
+    elseif ( $removalResult -eq $true -and $installResult -eq $true ) {
+        $t | Out-File -Append -FilePath $remediationSuccess -Encoding UTF8
+    }
 }
 
 # ----------------------------------------
