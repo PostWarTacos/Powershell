@@ -181,55 +181,8 @@ foreach ( $t in $targets ){
         $message = "Attempting repair actions on $(hostname)"
         Update-HealthLog -path $healthLogPath_pass -Message $message -WriteHost -Color Cyan
 
-        # Remove certs and restart service
-        # Possible this is the only needed fix.
-        # Run this first step and then test if it worked before 
-        Write-Host "(Step 1 of 12) Stopping CcmExec to remove SMS certs." -ForegroundColor Cyan
-        $found = Get-Service CcmExec -ErrorAction SilentlyContinue
-        if ( $found ){
-            try {
-                Stop-ServiceWithTimeout CcmExec
-                write-host "Removing SMS certs."  -ForegroundColor Yellow
-                Get-ChildItem Cert:\LocalMachine\SMS | Remove-Item
-                Start-Service CcmExec -ErrorAction SilentlyContinue
-            
-                # Start service
-                Start-Sleep -Seconds 10 # Allow some time for the service to start
-            
-                # Attempt to contact MP and pull new policy. If this works, client should be healthy.
-                Invoke-WmiMethod -Namespace "root\ccm" -Class "SMS_Client" -Name "TriggerSchedule" -ArgumentList "{00000000-0000-0000-0000-000000000021}" | Out-Null
-                $policyAgentLogs = "C:\Windows\CCM\Logs\PolicyAgent.log"
-                $recentLogs = Get-Content $policyAgentLogs -Tail 50
-                $patterns = @(
-                    "Updated namespace .* successfully",
-                    "Successfully received policy assignments from MP",
-                    "PolicyAgent successfully processed the policy assignment",
-                    "Completed policy evaluation cycle"
-                )
-                                        
-                $success = $recentLogs | Select-String -Pattern $patterns
-                
-                # Announce success/fail
-                if ( $success ) {
-                    $message = "Service restarted successfully and MP contacted. Assuming resolved, ending script."
-                    Update-HealthLog -path $healthLogPath_pass -message $message -WriteHost -color Green
-                    return 102
-                } else {
-                    $message = "Failed to start service. Continuing with SCCM Client removal and reinstall."
-                    Update-HealthLog -path $healthLogPath_pass -message $message -WriteHost -color Red -return
-                }   
-            }
-            catch {
-                $message = "Failed to start service. Continuing with SCCM Client removal and reinstall."
-                    Update-HealthLog -path $healthLogPath_pass -message $message -WriteHost -color Red -return
-            }
-        } Else {
-            $message = "CcmExec Service not installed. Continuing with SCCM Client removal and reinstall."
-            Update-HealthLog -path $healthLogPath_pass -message $message -WriteHost -color Yellow
-        }
-
         # Clean uninstall
-        Write-Host "(Step 2 of 12) Performing SCCM uninstall." -ForegroundColor Cyan
+        Write-Host "(Step 1 of 11) Performing SCCM uninstall." -ForegroundColor Cyan
             if ( Test-Path C:\Windows\ccmsetup\ccmsetup.exe ){
                 try {
                     Get-Service -Name CcmExec -ErrorAction SilentlyContinue | Stop-Service -Force
@@ -258,7 +211,7 @@ foreach ( $t in $targets ){
             }
         
         # Remove both services ccmexec and ccmsetup
-        Write-Host "(Step 3 of 12) Stopping and removing CcmExec and CcmSetup services." -ForegroundColor Cyan
+        Write-Host "(Step 2 of 11) Stopping and removing CcmExec and CcmSetup services." -ForegroundColor Cyan
         $services = @(
             "ccmexec",
             "ccmsetup"
@@ -283,7 +236,7 @@ foreach ( $t in $targets ){
         }
 
         # Kill all SCCM client processes
-        Write-Host "(Step 4 of 12) Killing all tasks related to SCCM." -ForegroundColor Cyan
+        Write-Host "(Step 3 of 11) Killing all tasks related to SCCM." -ForegroundColor Cyan
         $files = @(
             "C:\Windows\CCM",
             "C:\Windows\ccmcache",
@@ -311,7 +264,7 @@ foreach ( $t in $targets ){
         }
 
         # Delete the folders for SCCM
-        Write-Host "(Step 5 of 12) Deleting all SCCM folders and files." -ForegroundColor Cyan
+        Write-Host "(Step 4 of 11) Deleting all SCCM folders and files." -ForegroundColor Cyan
         foreach ( $file in $files ){
             if ( Test-Path $file ){
                 try {
@@ -333,7 +286,7 @@ foreach ( $t in $targets ){
         }
 
         # Delete the main registry keys associated with SCCM
-        Write-Host "(Step 6 of 12) Deleting all SCCM reg keys." -ForegroundColor Cyan
+        Write-Host "(Step 5 of 11) Deleting all SCCM reg keys." -ForegroundColor Cyan
         $keys= @(
             "HKLM:\Software\Microsoft\CCM",
             "HKLM:\Software\Microsoft\SMS",
@@ -366,7 +319,7 @@ foreach ( $t in $targets ){
         }
 
         # Remove SCCM namespaces from WMI repository
-        Write-Host "(Step 7 of 12) Remove SCCM namespaces from WMI repo." -ForegroundColor Cyan
+        Write-Host "(Step 6 of 11) Remove SCCM namespaces from WMI repo." -ForegroundColor Cyan
         try {
             Get-CimInstance -Query "Select * From __Namespace Where Name='CCM'" -Namespace "root" -ErrorAction SilentlyContinue | Remove-CimInstance -Confirm:$false -ErrorAction SilentlyContinue
             Get-CimInstance -Query "Select * From __Namespace Where Name='CCMVDI'" -Namespace "root" -ErrorAction SilentlyContinue | Remove-CimInstance -Confirm:$false -ErrorAction SilentlyContinue
@@ -408,7 +361,7 @@ foreach ( $t in $targets ){
     }
 
     # -------------------- FILE CHECK -------------------- #
-    Write-Host "(Step 8 of 12) Verifying valid installer exe on machine." -ForegroundColor Cyan
+    Write-Host "(Step 7 of 11) Verifying valid installer exe on machine." -ForegroundColor Cyan
 
     # ----------------------------------------
     # Start of File Check invoke-command
@@ -503,7 +456,7 @@ foreach ( $t in $targets ){
 
     # -------------------- REBOOT AND WAIT -------------------- #
 
-    Write-Host "(Step 9 of 12) Rebooting." -ForegroundColor Cyan
+    Write-Host "(Step 8 of 11) Rebooting." -ForegroundColor Cyan
 
     $initialBootTime = invoke-command -ComputerName $t { 
         ( Get-CimInstance -ComputerName $t -ClassName Win32_OperatingSystem ).LastBootUpTime
@@ -658,7 +611,7 @@ foreach ( $t in $targets ){
 
         # -------------------- Reinstall SCCM -------------------- #
 
-        Write-Host "(Step 10 of 12) Attempting reinstall." -ForegroundColor Cyan
+        Write-Host "(Step 9 of 11) Attempting reinstall." -ForegroundColor Cyan
         try {
             
             # Run SCCM installer silently with parameters. Wait for process to complete.
@@ -697,14 +650,14 @@ foreach ( $t in $targets ){
         # -------------------- REGISTER AND RUN CCMEVAL CHECK -------------------- #
 
         # CCMEval.exe actions
-        Write-Host "(Step 11 of 12) Registering CcmEval. Running CcmEval check." -ForegroundColor Cyan
+        Write-Host "(Step 10 of 11) Registering CcmEval. Running CcmEval check." -ForegroundColor Cyan
         C:\windows\ccm\CcmEval.exe /register
         Start-Sleep -Seconds 5
         C:\windows\ccm\CcmEval.exe /run
 
         # -------------------- RUN UNTIL ALL PASS OR TIMEOUT -------------------- #
 
-        Write-Host "(Step 12 of 12) Running custom designed health check." -ForegroundColor Cyan
+        Write-Host "(Step 11 of 11) Running custom designed health check." -ForegroundColor Cyan
 
         Write-Host "Pausing for 60 seconds before verifying client is operating correctly."
         Start-Sleep -Seconds 60
