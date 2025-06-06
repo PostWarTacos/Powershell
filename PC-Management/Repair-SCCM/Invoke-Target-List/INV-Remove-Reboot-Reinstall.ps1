@@ -33,7 +33,7 @@ $targets = Get-Content $targetFile
 # File Check
 $targetPath = "C:\drivers\ccm\ccmsetup"
 $exeOnSrvr = Join-Path $cpSource "ccmsetup.exe"
-$correctVersion = ([System.Diagnostics.FileVersionInfo]::GetVersionInfo($exeOnSrvr)).FileVersion # get ver of installer on server
+[version]$correctVersion = ([System.Diagnostics.FileVersionInfo]::GetVersionInfo($exeOnSrvr)).FileVersion # get ver of installer on server
 
 # URLs for copying exe to machine
 # cpDestination is assigned per machine in the File Check section
@@ -56,6 +56,12 @@ foreach ( $t in $targets ){
 
     Write-Host "Starting SCCM remediation on $t" -ForegroundColor Green
     
+    $failedToConnect = if ( -not ( Test-Connection $t -Count 2 -Quiet )){
+        Write-host "Unable to connect to $t. Skipping it."
+        Write-Output $t
+        break
+    }
+
     pause
     Clear-Host
 
@@ -177,7 +183,7 @@ foreach ( $t in $targets ){
         # Remove certs and restart service
         # Possible this is the only needed fix.
         # Run this first step and then test if it worked before 
-        Write-Host "(Step 1 of 8) Stopping CcmExec to remove SMS certs." -ForegroundColor Cyan
+        Write-Host "(Step 1 of 12) Stopping CcmExec to remove SMS certs." -ForegroundColor Cyan
         $found = Get-Service CcmExec -ErrorAction SilentlyContinue
         if ( $found ){
             try {
@@ -222,7 +228,7 @@ foreach ( $t in $targets ){
         }
 
         # Clean uninstall
-        Write-Host "(Step 2 of 8) Performing SCCM uninstall." -ForegroundColor Cyan
+        Write-Host "(Step 2 of 12) Performing SCCM uninstall." -ForegroundColor Cyan
             if ( Test-Path C:\Windows\ccmsetup\ccmsetup.exe ){
                 try {
                     Get-Service -Name CcmExec -ErrorAction SilentlyContinue | Stop-Service -Force
@@ -251,7 +257,7 @@ foreach ( $t in $targets ){
             }
         
         # Remove both services ccmexec and ccmsetup
-        Write-Host "(Step 3 of 8) Stopping and removing CcmExec and CcmSetup services." -ForegroundColor Cyan
+        Write-Host "(Step 3 of 12) Stopping and removing CcmExec and CcmSetup services." -ForegroundColor Cyan
         $services = @(
             "ccmexec",
             "ccmsetup"
@@ -276,7 +282,7 @@ foreach ( $t in $targets ){
         }
 
         # Kill all SCCM client processes
-        Write-Host "(Step 4 of 8) Killing all tasks related to SCCM." -ForegroundColor Cyan
+        Write-Host "(Step 4 of 12) Killing all tasks related to SCCM." -ForegroundColor Cyan
         $files = @(
             "C:\Windows\CCM",
             "C:\Windows\ccmcache",
@@ -304,7 +310,7 @@ foreach ( $t in $targets ){
         }
 
         # Delete the folders for SCCM
-        Write-Host "(Step 5 of 8) Deleting all SCCM folders and files." -ForegroundColor Cyan
+        Write-Host "(Step 5 of 12) Deleting all SCCM folders and files." -ForegroundColor Cyan
         foreach ( $file in $files ){
             if ( Test-Path $file ){
                 try {
@@ -326,7 +332,7 @@ foreach ( $t in $targets ){
         }
 
         # Delete the main registry keys associated with SCCM
-        Write-Host "(Step 6 of 8) Deletinag all SCCM reg keys." -ForegroundColor Cyan
+        Write-Host "(Step 6 of 12) Deleting all SCCM reg keys." -ForegroundColor Cyan
         $keys= @(
             "HKLM:\Software\Microsoft\CCM",
             "HKLM:\Software\Microsoft\SMS",
@@ -359,7 +365,7 @@ foreach ( $t in $targets ){
         }
 
         # Remove SCCM namespaces from WMI repository
-        Write-Host "(Step 7 of 8) Remove SCCM namespaces from WMI repo." -ForegroundColor Cyan
+        Write-Host "(Step 7 of 12) Remove SCCM namespaces from WMI repo." -ForegroundColor Cyan
         try {
             Get-CimInstance -Query "Select * From __Namespace Where Name='CCM'" -Namespace "root" -ErrorAction SilentlyContinue | Remove-CimInstance -Confirm:$false -ErrorAction SilentlyContinue
             Get-CimInstance -Query "Select * From __Namespace Where Name='CCMVDI'" -Namespace "root" -ErrorAction SilentlyContinue | Remove-CimInstance -Confirm:$false -ErrorAction SilentlyContinue
@@ -397,35 +403,53 @@ foreach ( $t in $targets ){
     # ------------------------------------------------------------
 
     # -------------------- FILE CHECK -------------------- #
+    Write-Host "(Step 8 of 12) Verifying valid installer exe on machine." -ForegroundColor Cyan
 
     # ----------------------------------------
     # Start of File Check invoke-command
     # ----------------------------------------
 
     $fileCheck = Invoke-Command $t -ArgumentList $targetPath, $correctVersion {
-        param($targetPath_pass, $correctVersion_pass)
+        param($targetPath_pass, [version]$correctVersion_pass)
         $valid = $false
+
+        # -------------------- IN SCOPE FUNCTIONS -------------------- #
+
+        function Move-CCM {
+            [cmdletbinding()]
+            param(
+                [parameter(Mandatory)]
+                [string]$Source,
+
+                [parameter(Mandatory)]
+                [string]$Destination
+            )
+
+            $proc = Get-Process | Where-Object { $_.modules.filename -like "$source*" }
+            Stop-Process $proc.Id -Force -ErrorAction SilentlyContinue
+            Move-Item -Path $Source -Destination $Destination -Force
+        }
 
         # Various locations the ccmsetup.exe can be found. Actions to move it to 1 dedicated location.
         $locations = @(
-            @{ Path = "C:\drivers\ccm\ccmsetup"; Action = { Write-Host "Correct location and version. Doing nothing." } },
+            @{ Path = "C:\drivers\ccm\ccmsetup"; Action = { 
+                Write-Host "Correct location and version. Doing nothing."
+                Remove-Item -Path "C:\drivers\ccmsetup" -Recurse -Force -ErrorAction SilentlyContinue
+                Remove-Item -Path "C:\drivers\ccm\client" -Recurse -Force -ErrorAction SilentlyContinue
+            }},
         
             @{ Path = "C:\drivers\ccm\client"; Action = {
                 Write-Host "Renaming client to ccmsetup..."
                 Rename-Item -Path "C:\drivers\ccm\client" -NewName "ccmsetup" -Force
+                Remove-Item -Path "C:\drivers\ccmsetup" -Recurse -Force -ErrorAction SilentlyContinue
             }},
         
             @{ Path = "C:\drivers\ccmsetup"; Action = {
                 Write-Host "Moving contents to $targetPath_pass..."
                 if ( -not ( Test-Path $targetPath_pass )) { New-Item -ItemType Directory -Path $targetPath_pass | Out-Null }
-                Move-Item -Path "C:\drivers\ccmsetup\*" -Destination $targetPath_pass -Force
-                Remove-Item -Path "C:\drivers\ccmsetup" -Recurse -Force
-            }},
-        
-            @{ Path = "C:\drivers\ccm"; Action = {
-                Write-Host "Moving contents to $targetPath_pass..."
-                if ( -not ( Test-Path $targetPath_pass )) { New-Item -ItemType Directory -Path $targetPath_pass | Out-Null }
-                Move-Item -Path "C:\drivers\ccm\*" -Destination $targetPath_pass -Force
+                Move-CCM -Source "C:\drivers\ccmsetup" -Destination $targetPath_pass
+                Remove-Item -Path "C:\drivers\ccmsetup" -Recurse -Force -ErrorAction SilentlyContinue
+                Remove-Item -Path "C:\drivers\ccm\client" -Recurse -Force -ErrorAction SilentlyContinue
             }}
         )
 
@@ -474,6 +498,8 @@ foreach ( $t in $targets ){
 
     # -------------------- REBOOT AND WAIT -------------------- #
 
+    Write-Host "(Step 9 of 12) Rebooting." -ForegroundColor Cyan
+
     $initialBootTime = invoke-command -ComputerName $t { 
         ( Get-CimInstance -ComputerName $t -ClassName Win32_OperatingSystem ).LastBootUpTime
     }
@@ -499,8 +525,8 @@ foreach ( $t in $targets ){
     # Start of Reinstall invoke-command
     # ----------------------------------------
 
-    $installResult = Invoke-Command -computername $t -ArgumentList $healthLogPath {
-        param($healthLogPath_pass)
+    $installResult = Invoke-Command -computername $t -ArgumentList $healthLogPath, $correctVersion {
+        param($healthLogPath_pass, [version]$correctVersion_pass)
 
         # Define scoped log array
         $healthLog = [System.Collections.ArrayList]@()
@@ -576,8 +602,8 @@ foreach ( $t in $targets ){
             }
 
             # Check Client Version
-            $smsClient = Get-CimInstance -Namespace "root\ccm" -ClassName SMS_Client -ErrorAction SilentlyContinue
-            if ( $smsClient.ClientVersion ) {
+            [version]$smsClientVer = (Get-CimInstance -Namespace "root\ccm" -ClassName SMS_Client -ErrorAction SilentlyContinue).ClientVersion
+            if ( $smsClientVer -ge $correctVersion_pass ) {
                 Update-HealthLog -path $healthLogPath_pass -message "SCCM Client Version: $($smsClient.ClientVersion)" -WriteHost -color Green
             } else {
                 Update-HealthLog -path $healthLogPath_pass -message "Client Version not found." -WriteHost -color Red
@@ -627,7 +653,7 @@ foreach ( $t in $targets ){
 
         # -------------------- Reinstall SCCM -------------------- #
 
-        Write-Host "(Step 7 of 8) Attempting reinstall." -ForegroundColor Cyan
+        Write-Host "(Step 10 of 12) Attempting reinstall." -ForegroundColor Cyan
         try {
             
             # Run SCCM installer silently with parameters. Wait for process to complete.
@@ -666,12 +692,14 @@ foreach ( $t in $targets ){
         # -------------------- REGISTER AND RUN CCMEVAL CHECK -------------------- #
 
         # CCMEval.exe actions
-        Write-Host "(Step 8 of 8) Registering CcmEval. Running CcmEval check." -ForegroundColor Cyan
+        Write-Host "(Step 11 of 12) Registering CcmEval. Running CcmEval check." -ForegroundColor Cyan
         C:\windows\ccm\CcmEval.exe /register
         Start-Sleep -Seconds 5
         C:\windows\ccm\CcmEval.exe /run
 
         # -------------------- RUN UNTIL ALL PASS OR TIMEOUT -------------------- #
+
+        Write-Host "(Step 12 of 12) Running custom designed health check." -ForegroundColor Cyan
 
         Write-Host "Pausing for 60 seconds before verifying client is operating correctly."
         Start-Sleep -Seconds 60
@@ -714,6 +742,11 @@ foreach ( $t in $targets ){
     }
     elseif ( $removalResult -eq $true -and $installResult -eq $true ) {
         $t | Out-File -Append -FilePath $remediationSuccess -Encoding UTF8
+    }
+    if ( $failedToConnect ){
+        foreach ( $f in $failedToConnect ){
+            "$f failed to connect" | Out-File -Append -FilePath $remediationFail -Encoding UTF8
+        }
     }
 }
 
