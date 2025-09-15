@@ -7,7 +7,7 @@
         
         # --- Set 2 ---
         [Parameter(ParameterSetName = 'ByStore', Mandatory = $true)]
-        [int]$StoreNumber,
+        [string]$StoreNumber,
 
         # --- Set 3 ---
         [Parameter(ParameterSetName = 'BySite', Mandatory = $true)]
@@ -25,7 +25,7 @@
             $result = $db | Where-Object SiteCode -eq $localCode
         }
         'ByStore' {
-            $result = $db | Where-Object StoreNumber -eq $StoreNumber
+            $result = $db | Where-Object StoreNumber -like "*$StoreNumber"
         }
         'BySite' {
             $result = $db | Where-Object SiteCode -eq $SiteCode

@@ -1,0 +1,1 @@
+Powershell.exe -executionpolicy remotesigned -File  C:\Users\1365935510N\Documents\Programming\Scripts\OpenAdminTools.ps1
